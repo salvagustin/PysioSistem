@@ -1,0 +1,227 @@
+{% extends 'index.html' %}
+
+{% block title %} | Pacientes {% endblock title %}
+
+{% block content %}
+{% load static %}
+
+<div class="container-fluid py-4">
+  <div class="text-center mb-3">
+    <h2 class="fw-bold mb-0">Pacientes</h2>
+  </div>
+
+  <!-- Controles y Búsqueda -->
+  <div class="row g-3 align-items-center justify-content-between mb-3">
+    
+    <!-- Botones -->
+    <div class="col-12 col-md-auto d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+      <a class="btn btn-primary" href="/agregarpaciente/">
+        <i class="bi bi-plus-circle"></i> Paciente
+      </a>
+      <a class="btn btn-secondary" href="/pacientes/">
+        <i class="bi bi-arrow-clockwise"></i> Restablecer
+      </a>
+    </div>
+
+    <!-- Formulario de búsqueda -->
+    <div class="col-12 col-md">
+      <form method="get" class="row g-2 justify-content-center justify-content-md-end">
+        
+        <!-- Filtro -->
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <select class="form-select form-select-sm" name="filtro">
+            <option value="nombre" {% if filtro == "nombre" %}selected{% endif %}>Nombre</option>
+            <option value="telefono" {% if filtro == "telefono" %}selected{% endif %}>Teléfono</option>
+            <option value="sexo" {% if filtro == "sexo" %}selected{% endif %}>Sexo</option>
+          </select>
+        </div>
+
+        <!-- Campo de búsqueda -->
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <input required type="text" class="form-control form-control-sm" name="buscar" placeholder="Buscar..." value="{{ buscar }}">
+        </div>
+
+        <!-- Botón Buscar -->
+        <div class="col-12 col-sm-4 col-md-auto">
+          <button type="submit" class="btn btn-success btn-sm w-100 d-flex align-items-center justify-content-center">
+            <i class="bi bi-search fs-5 me-2"></i> <span>Buscar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Vista tipo cards para móviles -->
+<div class="d-md-none"> 
+    {% for paciente in entity %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title fw-bold">{{ paciente.nombre }}</h5>
+            <p class="card-text mb-1"><strong>Fecha nacimiento:</strong> {{ paciente.fecha_nacimiento }}</p>
+            <p class="card-text mb-2"><strong>Teléfono:</strong> {{ paciente.telefono }}</p>
+            <button class="btn btn-sm btn-info text-white"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalPaciente"
+                            data-id="{{ paciente.idpaciente }}"
+                            data-nombre="{{ paciente.nombre }}"
+                            data-fecha="{{ paciente.fecha_nacimiento }}"
+                            data-telefono="{{ paciente.telefono }}">
+                        Detalles
+                    </button>
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center">No hay pacientes registrados.</div>
+    {% endfor %}
+</div>
+
+    <!-- Tabla de Pacientes -->
+    <div class="table-responsive d-none d-md-block">
+    <table class="table table-bordered table-hover align-middle text-center custom-table">
+        <thead class="table-dark">
+            <tr>
+                <th>Nombre</th>
+                <th>Fecha nacimiento</th>
+                <th>Teléfono</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for paciente in entity %}
+            <tr>
+                <td>{{ paciente.nombre }}</td>
+                <td>{{ paciente.fecha_nacimiento }}</td>
+                <td>{{ paciente.telefono }}</td>
+                <td>
+                    <button class="btn btn-sm btn-info text-white"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalPaciente"
+                            data-id="{{ paciente.idpaciente }}"
+                            data-nombre="{{ paciente.nombre }}"
+                            data-fecha="{{ paciente.fecha_nacimiento }}"
+                            data-telefono="{{ paciente.telefono }}">
+                        Detalles
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No hay pacientes registrados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% include "paginacion.html" %}
+</div>
+ 
+<!-- Modal Detalles Paciente -->
+<div class="modal fade" id="modalPaciente" tabindex="-1" aria-labelledby="modalPacienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow">
+
+            <!-- Header -->
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalPacienteLabel">
+                    <i class="bi bi-person-lines-fill me-2"></i> Información del Paciente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+                <div class="row gy-3">
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                        <i class="bi bi-person-fill fs-4 text-primary me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-0">Nombre</h6>
+                            <p class="text-muted mb-0" id="pacienteNombre"></p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                        <i class="bi bi-calendar-event-fill fs-4 text-success me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-0">Fecha de nacimiento</h6>
+                            <p class="text-muted mb-0" id="pacienteFechaNacimiento"></p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                        <i class="bi bi-hourglass-split fs-4 text-warning me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-0">Edad</h6>
+                            <p class="text-muted mb-0"><span id="pacienteEdad"></span> años</p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                        <i class="bi bi-telephone-fill fs-4 text-danger me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-0">Teléfono</h6>
+                            <p class="text-muted mb-0" id="pacienteTelefono"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+                <div class="d-flex flex-wrap gap-2">
+                    <a id="btnEditarPaciente" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil-square me-1"></i> Editar
+                    </a>
+                    <a id="btnHistorial" class="btn btn-outline-info text-dark">
+                        <i class="bi bi-journal-text me-1"></i> Historial
+                    </a>
+                    <button 
+                    class="btn btn-outline-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalConfirmarEliminarPaciente"
+                    data-bs-dismiss="modal">
+                    <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i> Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="modalConfirmarEliminarPaciente" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">¿Eliminar Paciente?</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de eliminar esta Paciente?</p>
+            </div>
+            <div class="modal-footer">
+                <form id="formEliminarPaciente" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Sí, eliminar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      {% for message in messages %}
+        Swal.fire({
+          icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}",
+          title: "{{ message|escapejs }}",
+          timer: 3000,
+          showConfirmButton: false
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+
+{% endblock content %}

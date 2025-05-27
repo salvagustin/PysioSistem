@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %} | Agregar Receta {% endblock title %}
+
+{% block extrahead %}
+{{ RecetaForm.media }}
+{% endblock %}
+
+{% block content %}
+{% load crispy_forms_tags %}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="text-center mb-4">
+                <h2 class="fw-bold">Nueva Receta</h2>
+                <p class="text-muted">Completa el formulario para registrar una receta</p>
+            </div>
+            {% if paciente_nombre %}
+                <div class="alert alert-info mb-4">
+                    <strong>Paciente:</strong> {{ paciente_nombre }}
+                </div>
+            {% endif %}
+            <div class="card shadow rounded-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Formulario de Receta</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        {{ RecetaForm|crispy }}
+
+                        <div id="formErrors" class="alert alert-danger d-none mt-3"></div>
+
+                        <div class="d-flex justify-content-end mt-4 gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-plus-circle"></i> Guardar receta
+                            </button>
+                            <a href="/recetas/" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<!-- Scripts opcionales si deseas añadir validación o interactividad -->
+{% endblock %}

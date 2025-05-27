@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+
+{% block title %} | Citas {% endblock title %}
+
+{% block content %}
+<div class="container mt-5">
+
+  <!-- Título principal -->
+  <div class="text-center mb-4">
+    <h1 class="fw-bold">
+      <i class="bi bi-calendar3-event me-2"></i> Citas de: {{ mes }}
+    </h1>
+  </div>
+
+  <!-- Controles superiores -->
+  <div class="row mb-4 justify-content-center">
+    <div class="col-12 col-md-10">
+      <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+
+        <!-- Botones principales -->
+        <div class="d-flex flex-row flex-wrap gap-2 justify-content-center align-items-center">
+          <button class="btn btn-primary d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#modalAgregarCita">
+                <i class="bi bi-plus-circle fs-5 me-2"></i> <span> Cita</span>
+            </button>
+          <a class="btn btn-secondary d-flex align-items-center" href="/citas/">
+            <i class="bi bi-arrow-clockwise me-2"></i> Restablecer
+          </a>
+        </div>
+
+        <!-- Resumen -->
+        <div class="text-center text-md-start">
+          <div class="fw-semibold">Semana: <span class="text-primary">{{ semana }}</span>  Citas: <span class="text-success">{{ conteocitas }}</span></div>
+        </div>
+
+        <!-- Filtro por semana -->
+        <div class="col-12 col-md-auto">
+        <div class="row g-2 align-items-center justify-content-center justify-content-md-start">
+
+            <!-- Selector de semana -->
+            <div class="col-12 col-sm-auto">
+            <input type="week" name="week" class="form-control" />
+            </div>
+
+            <!-- Botón buscar -->
+            <div class="col-12 col-sm-auto">
+            <button id="week" class="btn btn-outline-success d-flex align-items-center w-100" onclick="buscarsemana()">
+                <i class="bi bi-search me-2"></i> Buscar
+            </button>
+            </div>
+
+  </div>
+</div>
+
+
+      </div>
+    </div>
+  </div>
+    <!-- Tabla de horarios -->
+    <div class="table-responsive" style="overflow-x: auto;">
+        <table class="table table-bordered text-center align-middle mb-0" style="min-width: 700px; table-layout: fixed;">
+            <thead class="table-light">
+            <tr>
+                <th style="width: 14%;">Hora/Día</th>
+                <th style="width: 17%;">Lunes: {{ fechalunes }}</th>
+                <th style="width: 17%;">Martes: {{ fechamartes }}</th>
+                <th style="width: 17%;">Miércoles: {{ fechamiercoles }}</th>
+                <th style="width: 17%;">Jueves: {{ fechajueves }}</th>
+                <th style="width: 17%;">Viernes: {{ fechaviernes }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for horario, fila in horarios_citas %}
+            <tr style="height: 50px;">
+                <td class="fw-semibold small">{{ horario }}</td>
+                {% for cita in fila %}
+                <td style="height: 50px; vertical-align: middle;">
+                {% if cita == 2 %}
+                <span class="d-inline-block text-success bg-success bg-opacity-10 rounded px-2 py-1 small fw-semibold">
+                    Disponible
+                </span>
+                {% else %}
+                <button
+                    type="button" 
+                    class="btn  btn-sm "
+                    data-bs-toggle="modal" 
+                    data-bs-target="#modalCita"
+                    data-id="{{ cita.idcita }}"
+                    data-nombre="{{ cita.paciente.nombre }}"
+                    data-fechacita="{{ cita.fechacita }}"
+                    data-horacita="{{ cita.horacita }}"
+                    data-observaciones="{{ cita.observaciones }}">
+                    {{ cita.paciente.nombre|truncatechars:20 }}
+                </button>
+                {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+  <!-- Modal para agregar cita -->
+<div class="modal fade" id="modalAgregarCita" tabindex="-1" aria-labelledby="modalAgregarCitaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content shadow">
+
+      <!-- Header -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalAgregarConsultaLabel">
+          <i class="bi bi-person-plus-fill me-2"></i> Seleccionar Paciente
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Formulario -->
+      <form method="get" action="/agregarcita/">
+        <div class="modal-body">
+          <div class="row gy-3">
+            <div class="col-12 d-flex align-items-start">
+              <i class="bi bi-person-fill-add fs-4 text-info me-3 mt-1"></i>
+              <div class="w-100">
+                <h6 class="mb-1">Paciente</h6>
+                <select class="form-select" name="paciente_id" required>
+                  <option value="" disabled selected>Selecciona un paciente</option>
+                  {% for paciente in pacientes %}
+                    <option value="{{ paciente.idpaciente }}">{{ paciente.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <input type="hidden" name="paciente_nombre" id="pacienteNombreInput">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+          <div class="d-flex flex-wrap gap-2">
+            
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-arrow-right-circle me-1"></i> Siguiente
+            </button>
+          </div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i> Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+ <!-- Modal para ver cita -->
+<div class="modal fade" id="modalCita" tabindex="-1" aria-labelledby="modalCitaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content shadow rounded-4">
+
+      <!-- Header -->
+      <div class="modal-header bg-info text-white rounded-top-4">
+        <h5 class="modal-title" id="modalCitaLabel">
+          <i class="bi bi-calendar-check-fill me-2"></i> Detalles de la Cita
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body py-4 px-4">
+        <div class="row gy-4">
+
+          <!-- Paciente -->
+          <div class="col-12 mb-3">
+            <div class="d-flex align-items-start">
+              <i class="bi bi-person-circle fs-4 text-primary me-3 mt-1"></i>
+              <div>
+                <h6 class="mb-1">Paciente</h6>
+                <p id="citaNombre" class="text-muted mb-0"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fecha y Hora -->
+          <div class="col-12 d-flex flex-wrap gap-5 mb-3">
+            <div class="d-flex align-items-start">
+              <i class="bi bi-calendar-event-fill fs-4 text-success me-3 mt-1"></i>
+              <div>
+                <h6 class="mb-1">Fecha</h6>
+                <p id="citaFechacita" class="text-muted mb-0"></p>
+              </div>
+            </div>
+            <div class="d-flex align-items-start">
+              <i class="bi bi-clock-history fs-4 text-warning me-3 mt-1"></i>
+              <div>
+                <h6 class="mb-1">Hora</h6>
+                <p id="citaHoracita" class="text-muted mb-0"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Observaciones -->
+          <div class="col-12">
+            <div class="d-flex align-items-start">
+              <i class="bi bi-chat-left-text fs-4 text-secondary me-3 mt-1"></i>
+              <div>
+                <h6 class="mb-1">Observaciones</h6>
+                <p id="citaObservaciones" class="text-muted mb-0"></p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer border-top-0 d-flex flex-wrap gap-2 justify-content-between">
+        <div class="d-flex flex-wrap gap-2">
+          <a id="btnEditarCita" class="btn btn-outline-success">
+            <i class="bi bi-pencil-square me-1"></i> Editar
+          </a>
+
+          <button 
+            class="btn btn-outline-danger"
+            data-bs-toggle="modal"
+            data-bs-target="#modalConfirmarEliminarCita"
+            data-bs-dismiss="modal">
+            <i class="bi bi-trash me-1"></i> Eliminar
+          </button>
+        </div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+  <!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="modalConfirmarEliminarCita" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">¿Eliminar Cita?</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de eliminar esta Cita?</p>
+            </div>
+            <div class="modal-footer">
+                <form id="formEliminarCita" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Sí, eliminar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</div>
+
+<script>
+  // Asignar nombre al paciente automáticamente
+  document.addEventListener('DOMContentLoaded', function () {
+    const select = document.querySelector('select[name="paciente_id"]');
+    const input = document.getElementById('pacienteNombreInput');
+
+    select.addEventListener('change', function () {
+      const nombre = select.options[select.selectedIndex].text;
+      input.value = nombre;
+    });
+  });
+
+  // Función para buscar por semana
+  function buscarsemana() {
+    const weekInput = document.querySelector('input[name="week"]');
+    const week = weekInput.value;
+
+    if (!week) {
+      swal({
+        title: "¡Campo vacío!",
+        text: "Seleccione una semana.",
+        timer: 2000,
+        icon: "warning",
+        buttons: false
+      });
+      return;
+    }
+
+    const [ano, semana] = week.split('-W');
+    if (!ano || !semana) {
+      swal({
+        title: "¡Error!",
+        text: "Formato de semana inválido.",
+        timer: 2000,
+        icon: "error",
+        buttons: false
+      });
+      return;
+    }
+
+    // Redirige a la vista en Django
+    location.href = `/buscarsemana/${ano}/${semana}`;
+  }
+</script>
+
+{% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      {% for message in messages %}
+        Swal.fire({
+          icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}",
+          title: "{{ message|escapejs }}",
+          timer: 4000,
+          showConfirmButton: false
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}
+{% endblock content %}

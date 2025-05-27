@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %} | Recetas {% endblock title %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Título -->
+    <div class="text-center mb-2">
+        <h2 class="fw-bold">Recetas</h2>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="d-flex justify-content-between flex-wrap gap-2 mb-4">
+        <a class="btn btn-secondary" href="/recetas/">
+            <i class="bi bi-arrow-clockwise"></i> Restablecer
+        </a>
+        <form class="d-flex" onsubmit="event.preventDefault(); buscar_receta();">
+            <input class="form-control me-2" type="text" placeholder="Ingrese un nombre" name="receta" autocomplete="off">
+            <button class="btn btn-outline-success" type="submit">
+                <i class="bi bi-search"></i> Buscar
+            </button>
+        </form>
+    </div>
+
+    <!-- Tabla de recetas -->
+    <div class="table-responsive shadow-sm rounded-3">
+        <table class="table table-bordered table-hover align-middle text-center">
+            <thead class="table-dark">
+                <tr>
+                    <th>Número</th>
+                    <th>Paciente</th>
+                    <th>Fecha</th>
+                    <th colspan="2" >Indicaciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for receta in entity %}
+                <tr>
+                    <td>{{ receta.idreceta }}</td>
+                    <td>{{ receta.consulta.paciente.nombre|truncatechars:20 }}</td>
+                    <td>{{ receta.fechareceta }}</td>
+                    <td>{{ receta.indicaciones|truncatechars:50 }}</td>
+                    <td>
+                        <div class="d-flex flex-wrap justify-content-center gap-1">
+                            <button
+                                class="btn btn-sm btn-info"
+                                onclick="mostrarModalReceta(this)"
+                                data-id="{{ receta.idreceta }}"
+                                data-consulta="{{ receta.consulta.idconsulta }}"
+                                data-paciente="{{ receta.consulta.paciente.nombre }}"
+                                data-fechareceta="{{ receta.fechareceta }}"
+                                data-medicamento="{{ receta.medicamento }}"
+                                data-dosis="{{ receta.dosis }}"
+                                data-duracion="{{ receta.duracion }}"
+                                data-indicaciones="{{ receta.indicaciones }}"
+
+                                >
+                                Detalles
+                            </button>
+                        </div> 
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">No se encontraron recetas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+<!-- Modal Receta Bootstrap -->
+<div class="modal fade" id="modalReceta" tabindex="-1" aria-labelledby="modalRecetaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalRecetaLabel">Información de Receta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Número:</strong> <span id="recetaId"></span></p>
+        <p><strong>Consulta:</strong> <span id="recetaConsulta"></span></p>
+        <p><strong>Paciente:</strong> <span id="recetaPaciente"></span></p>
+        <p><strong>Fecha:</strong> <span id="recetaFecha"></span></p>
+        <p><strong>Medicamento:</strong> <span id="recetaMedicamento"></span></p>
+        <p><strong>Dosis:</strong> <span id="recetaDosis"></span></p>
+        <p><strong>Duración:</strong> <span id="recetaDuracion"></span></p>
+        <p><strong>Indicaciones:</strong> <span id="recetaIndicaciones"></span></p>
+      </div>
+      <div class="modal-footer">
+        <a id="btnEditarReceta" class="btn btn-primary">Editar</a>
+        <a id="btnImprimir" class="btn btn-success" target="_blank">Imprimir</a>
+        <a id="btnEliminarReceta" class="btn btn-danger">Eliminar</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- Paginación -->
+    {% include "paginacion.html" %}
+</div>
+
+<!-- Alertas con SweetAlert -->
+{% if mensaje == 1 %}
+<script>
+    swal({
+        title: "¡Dato no encontrado!",
+        text: "No existe ese paciente.",
+        icon: "info",
+    }).then(() => {
+        location.href = "/recetas/";
+    });
+</script>
+{% elif mensaje == 2 %}
+<script>
+    swal({
+        title: "¡Consulta Creada!",
+        text: "",
+        timer: 2000,
+        showConfirmButton: false
+    });
+</script>
+{% endif %}
+{% endblock content %}

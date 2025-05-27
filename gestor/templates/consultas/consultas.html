@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %} | Consultas {% endblock title %}
+
+{% block content %}
+{% load static %}
+<div class="container py-4">
+    <div class="text-center mb-3">
+        <h2 class="fw-bold">Consultas</h2>
+    </div>
+
+    <!-- Controles y Filtros -->
+    <div class="row gy-3 align-items-center mb-2">
+        <div class="col-12 col-md-4 d-flex flex-column flex-md-row justify-content-center align-items-center gap-2">
+            <button class="btn btn-primary w-100 d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#modalAgregarConsulta">
+                <i class="bi bi-plus-circle fs-5 me-2"></i> <span> Consulta</span>
+            </button>
+            <a href="/consultas/" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center">
+                <i class="bi bi-arrow-counterclockwise fs-5 me-2"></i> <span>Restablecer</span>
+            </a>
+        </div>
+
+        <div class="col-12 col-md-8">
+            <form method="get" class="row g-2 justify-content-center">
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <select class="form-select form-select-sm" name="filtro">
+                        <option value="paciente" {% if filtro == "paciente" %}selected{% endif %}>Paciente</option>
+                        <option value="tipo" {% if filtro == "tipo" %}selected{% endif %}>Tipo</option>
+                        <option value="precioconsulta" {% if filtro == "precioconsulta" %}selected{% endif %}>Precio</option>
+                    </select>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar..." value="{{ buscar }}">
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ fecha_inicio }}" title="Desde">
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                    <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ fecha_fin }}" title="Hasta">
+                </div>
+                <div class="col-12 col-sm-4 col-md-auto">
+                    <button type="submit" class="btn btn-success btn-sm w-100 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-search fs-5 me-2"></i> <span>Buscar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Vista tipo Cards para móviles -->
+    <div class="d-md-none">
+        {% for consulta in entity %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title fw-bold">Consulta #{{ consulta.idconsulta }}</h5>
+                <p class="mb-1"><strong>Paciente:</strong> {{ consulta.paciente.nombre }}</p>
+                <p class="mb-1"><strong>Fecha:</strong> {{ consulta.fechaconsulta|date:"d/m/Y" }}</p>
+                <p class="mb-1"><strong>Hora:</strong> {{ consulta.horaconsulta }}</p>
+                <p class="mb-1"><strong>Precio:</strong> ${{ consulta.precioconsulta }}</p>
+                <p class="mb-2"><strong>Diagnóstico:</strong> {{ consulta.observaciones|default:"Sin diagnóstico" }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    
+                    <button class="btn btn-sm btn-info text-white"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalConsulta"
+                            data-id="{{ consulta.idconsulta }}"
+                            data-nombre="{{ consulta.paciente.nombre }}"
+                            data-fechaconsulta="{{ consulta.fechaconsulta }}"
+                            data-horaconsulta="{{ consulta.horaconsulta }}"
+                            data-precioconsulta="{{ consulta.precioconsulta }}"
+                            data-observaciones="{{ consulta.observaciones }}">
+                        <i class="bi bi-eye"></i> Detalles
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center">No hay consultas registradas.</div>
+        {% endfor %}
+        {% include "paginacion.html" %}
+    </div>
+
+    <!-- Tabla solo visible en escritorio -->
+    <div class="tbl_container d-none d-md-block">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Número</th>
+                        <th>Paciente</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Diagnóstico</th>
+                        <th colspan="2">Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for consulta in entity %}
+                    <tr>
+                        <td>{{ consulta.idconsulta }}</td>
+                        <td>{{ consulta.paciente.nombre|truncatechars:20 }}</td>
+                        <td>{{ consulta.fechaconsulta }}</td>
+                        <td>{{ consulta.horaconsulta }}</td>
+                        <td>{{ consulta.observaciones|truncatechars:30 }}</td>
+                        <td>${{ consulta.precioconsulta }}</td>
+                        <td>
+                            <div class="d-flex flex-wrap justify-content-center gap-1">
+                                <button
+                                    type="button" 
+                                    class="btn btn-info btn-sm text-white"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalConsulta"
+                                    data-id="{{ consulta.idconsulta }}"
+                                    data-nombre="{{ consulta.paciente.nombre }}"
+                                    data-fechaconsulta="{{ consulta.fechaconsulta }}"
+                                    data-horaconsulta="{{ consulta.horaconsulta }}"
+                                    data-precioconsulta="{{ consulta.precioconsulta }}"
+                                    data-observaciones="{{ consulta.observaciones }}">
+                                    Detalles
+                                </button>
+                            </div> 
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">No hay consultas registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "paginacion.html" %}
+    </div>
+</div>
+
+
+<!-- Modal Detalles Consulta -->
+<div class="modal fade" id="modalConsulta" tabindex="-1" aria-labelledby="modalConsultaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content shadow">
+
+      <!-- Header -->
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="modalConsultaLabel">
+          <i class="bi bi-file-earmark-medical-fill me-2"></i> Información de la Consulta
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <div class="row gy-3">
+          <div class="col-12 col-md-6 d-flex align-items-start">
+            <i class="bi bi-hash fs-4 text-primary me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Número</h6>
+              <p class="text-muted mb-0" id="consultaId"></p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 d-flex align-items-start">
+            <i class="bi bi-person-fill fs-4 text-info me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Paciente</h6>
+              <p class="text-muted mb-0" id="consultaNombre"></p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 d-flex align-items-start">
+            <i class="bi bi-calendar-event-fill fs-4 text-warning me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Fecha</h6>
+              <p class="text-muted mb-0" id="consultaFechaconsulta"></p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 d-flex align-items-start">
+            <i class="bi bi-clock-fill fs-4 text-secondary me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Hora</h6>
+              <p class="text-muted mb-0" id="consultaHoraconsulta"></p>
+            </div>
+          </div>
+          <div class="col-12 col-md-6 d-flex align-items-start">
+            <i class="bi bi-cash-stack fs-4 text-success me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Precio</h6>
+              <p class="text-muted mb-0">$<span id="consultaPrecioconsulta"></span></p>
+            </div>
+          </div>
+          <div class="col-12 d-flex align-items-start">
+            <i class="bi bi-chat-left-text-fill fs-4 text-danger me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Diagnóstico</h6>
+              <p class="text-muted mb-0" id="consultaObservaciones"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+        <div class="d-flex flex-wrap gap-2">
+          <a id="btnEditarConsulta" class="btn btn-outline-success">
+            <i class="bi bi-pencil-square me-1"></i> Editar
+          </a>
+          <button 
+                    class="btn btn-outline-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalConfirmarEliminarConsulta"
+                    data-bs-dismiss="modal">
+                    <i class="bi bi-trash"></i> Eliminar
+                    </button>
+        </div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="modalConfirmarEliminarConsulta" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">¿Eliminar Consulta?</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de eliminar esta Consulta?</p>
+            </div>
+            <div class="modal-footer">
+                <form id="formEliminarConsulta" method="post">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Sí, eliminar</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar consulta mejorado -->
+<div class="modal fade" id="modalAgregarConsulta" tabindex="-1" aria-labelledby="modalAgregarConsultaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content shadow">
+
+      <!-- Header -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalAgregarConsultaLabel">
+          <i class="bi bi-person-plus-fill me-2"></i> Seleccionar Paciente
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Formulario -->
+      <form method="get" action="/agregarconsulta/">
+        <div class="modal-body">
+          <div class="row gy-3">
+            <div class="col-12 d-flex align-items-start">
+              <i class="bi bi-person-fill-add fs-4 text-info me-3 mt-1"></i>
+              <div class="w-100">
+                <h6 class="mb-1">Paciente</h6>
+                <select class="form-select" name="paciente_id" required>
+                  <option value="" disabled selected>Selecciona un paciente</option>
+                  {% for paciente in pacientes %}
+                    <option value="{{ paciente.idpaciente }}">{{ paciente.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <input type="hidden" name="paciente_nombre" id="pacienteNombreInput">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+          <div class="d-flex flex-wrap gap-2">
+            <a href="/agregarpaciente/" class="btn btn-outline-primary">
+              <i class="bi bi-person-plus me-1"></i> Nuevo paciente
+            </a>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-arrow-right-circle me-1"></i> Siguiente
+            </button>
+          </div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i> Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const select = document.querySelector('select[name="paciente_id"]');
+    const input = document.getElementById('pacienteNombreInput');
+
+    select.addEventListener('change', function () {
+      const nombre = select.options[select.selectedIndex].text;
+      input.value = nombre;
+    });
+  });
+</script>
+
+{% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      {% for message in messages %}
+        Swal.fire({
+          icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}",
+          title: "{{ message|escapejs }}",
+          timer: 3000,
+          showConfirmButton: false
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %}  
+  
+
+{% endblock content %}

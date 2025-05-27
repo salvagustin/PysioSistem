@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %} | Reportes {% endblock title %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold">Reportes</h1>
+    </div>
+
+    <!-- Tarjetas resumen -->
+    <div class="row text-center mb-5">
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Mes actual: {{ mesactual }}</h5>
+                    <p class="card-text">Consultas: <strong>{{ consultasmes }}</strong></p>
+                    <p class="card-text">Citas: <strong>{{ citasmes }}</strong></p>
+                    <p class="card-text">Pacientes: <strong>{{ pacientesmesactual }}</strong></p>
+                    <p class="card-text">Devengado: <strong>${{ devengadomes }}</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Año: {{ year }}</h5>
+                    <p class="card-text">Consultas: <strong>{{ consultasanio }}</strong></p>
+                    <p class="card-text">Citas: <strong>{{ citasanio }}</strong></p>
+                    <p class="card-text">Pacientes: <strong>{{ pacientesanio }}</strong></p>
+                    <p class="card-text">Devengado: <strong>${{ devengadoanio }}</strong></p>
+                  </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total acumulado</h5>
+                    <p class="card-text">Consultas: <strong>{{ totalconsultas }}</strong></p>
+                    <p class="card-text">Citas: <strong>{{ totalcitas }}</strong></p>
+                    <p class="card-text">Pacientes: <strong>{{ totalpacientes }}</strong></p>
+                    <p class="card-text">Devengado: <strong>${{ totaldevengado }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-5">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div id="chart" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-5">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div id="chart2" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div id="chart4" style="height: 350px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row mb-5">
+        <div class="row gx-3 mb-4">
+            <!-- Gráfico 1: Consultas Recientes -->
+            <div class="col-lg-6 col-md-12 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                <div id="chart3" style="width: 100%; height: 350px;"></div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Gráfico 2: Top 5 Pacientes con más Consultas -->
+            <div class="col-lg-6 col-md-12 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                <div id="chart5" style="width: 100%; height: 350px;"></div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Script para ECharts -->
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+
+{% endblock content %}

@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+
+{% block title %} | Inicio {% endblock title %}
+
+{% block content %}
+<div class="container-fluid py-5">
+
+  <!-- Encabezado -->
+  <div class="text-center mb-5">
+    <h1 class="fw-bold display-5">Physio System</h1>
+  </div>
+
+  <!-- Acciones principales -->
+  <div class="row justify-content-center mb-4">
+    <div class="col-auto">
+      
+      <a class="btn btn-success btn-lg shadow-sm me-2" href="/agregarpaciente/">
+        <i class="bi bi-plus-circle"></i> Paciente</a>
+    </div>
+    <div class="col-auto">
+      <a class="btn btn-primary btn-lg shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#modalAgregarConsulta">
+        <i class="bi bi-plus-circle"></i> Consulta</a>
+    </div>
+    <div class="col-auto">
+      <a class="btn btn-secondary btn-lg shadow-sm" href="/agregarcita/">
+        <i class="bi bi-plus-circle"></i> Cita</a>
+    </div>
+  </div>
+  
+
+  <!-- Búsqueda -->
+  <div class="row justify-content-center mb-4">
+    <div class="col-12 col-md-6">
+      <form method="get" action="/buscarpaciente/">
+        <div class="input-group shadow-sm">
+          <input required type="text" class="form-control" placeholder="Buscar paciente por nombre" name="nombre" autocomplete="off">
+          <button class="btn btn-outline-success" type="submit">Buscar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Tablas de turnos -->
+  <div class="row justify-content-center mt-4">
+  <div class="col-12 col-md-10">
+
+    <!-- Turno Matutino -->
+<div class="mb-5">
+  <h5 class="fw-semibold text-center mb-3">Turno Matutino (8:00 AM - 11:00 AM)</h5>
+
+  <!-- Vista de escritorio (tabla) -->
+  <div class="table-container d-none d-md-block shadow-sm mb-3">
+    <table class="table custom-table table-bordered text-center align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for hora in horario.matutino %}
+            <th>{{ hora }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {% for hora, paciente in horario.matutino.items %}
+            <td class="{% if paciente %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+              {{ paciente|truncatechars:12|default:"Libre" }}
+            </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Vista móvil (tarjetas) -->
+  <div class="d-md-none">
+    {% for hora, paciente in horario.matutino.items %}
+      <div class="card mb-2 shadow-sm {% if paciente %}border-danger{% else %}border-success{% endif %}">
+        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+          <strong>{{ hora }}</strong>
+          <span class="badge {% if paciente %}bg-danger{% else %}bg-success{% endif %}">
+            {{ paciente|truncatechars:12|default:"Libre" }}
+          </span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+
+<!-- Turno Vespertino -->
+<div class="mb-5">
+  <h5 class="fw-semibold text-center mb-3">Turno Vespertino (1:00 PM - 5:00 PM)</h5>
+
+  <!-- Vista de escritorio (tabla) -->
+  <div class="table-container d-none d-md-block shadow-sm mb-3">
+    <table class="table custom-table table-bordered text-center align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for hora in horario.vespertino %}
+            <th>{{ hora }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {% for hora, paciente in horario.vespertino.items %}
+            <td class="{% if paciente %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+              {{ paciente|truncatechars:12|default:"Libre" }}
+            </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Vista móvil (tarjetas) -->
+  <div class="d-md-none">
+    {% for hora, paciente in horario.vespertino.items %}
+      <div class="card mb-2 shadow-sm {% if paciente %}border-danger{% else %}border-success{% endif %}">
+        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+          <strong>{{ hora }}</strong>
+          <span class="badge {% if paciente %}bg-danger{% else %}bg-success{% endif %}">
+            {{ paciente|truncatechars:12|default:"Libre" }}
+          </span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+
+  </div>
+</div>
+
+
+   <!-- Estadísticas del día -->
+  <div class="row text-center mb-4 justify-content-center">
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body py-3">
+          <h6 class="card-title mb-2">Consultas del Día</h6>
+          <p class="fs-4 mb-0">{{ consultashoy }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body py-3">
+          <h6 class="card-title mb-2">Citas del Día</h6>
+          <p class="fs-4 mb-0">{{ citashoy }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body py-3">
+          <h6 class="card-title mb-2">Devengado Hoy</h6>
+          <p class="fs-4 mb-0">${{ devengadohoy }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para agregar consulta -->
+  <div class="modal fade" id="modalAgregarConsulta" tabindex="-1" aria-labelledby="modalAgregarConsultaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="get" action="/agregarconsulta/">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalAgregarConsultaLabel">Selecciona un Paciente</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body">
+            <select class="form-select" name="paciente_id" required>
+              <option value="" disabled selected>Selecciona un paciente</option>
+              {% for paciente in pacientes %}
+              <option value="{{ paciente.idpaciente }}">{{ paciente.nombre }}</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="paciente_nombre" id="pacienteNombreInput">
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Siguiente</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerta de paciente no encontrado -->
+  {% if mensaje == 1 %}
+  <script>
+    swal({
+      title: "¡Dato no encontrado!",
+      text: "No existe ese paciente.",
+      icon: "info",
+      button: "Aceptar"
+    }).then(() => {
+      location.href = "/inicio/"
+    });
+  </script>
+  {% endif %}
+
+</div>
+
+<!-- Scripts -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const select = document.querySelector('select[name="paciente_id"]');
+    const input = document.getElementById('pacienteNombreInput');
+
+    select.addEventListener('change', function () {
+      const nombre = select.options[select.selectedIndex].text;
+      input.value = nombre;
+    });
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+
+<style>
+  .custom-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .custom-table th,
+  .custom-table td {
+    min-width: 120px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 768px) {
+    .custom-table {
+      width: max-content;
+    }
+
+    .custom-table th,
+    .custom-table td {
+      min-width: 100px;
+      font-size: 12px;
+      padding: 6px;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+    width: 100%;
+  }
+</style>
+
+
+{% endblock content %}

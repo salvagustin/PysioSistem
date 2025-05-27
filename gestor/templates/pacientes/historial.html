@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %} | Historial {% endblock title %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Título -->
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">Historial del Paciente</h2>
+    </div>
+
+    <!-- Información del paciente -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-6">
+            <div class="card text-center shadow-sm rounded-4">
+                <div class="card-body">
+                    <h4 class="card-title mb-2">
+                        <strong>Nombre:</strong> {{ nombre }}
+                    </h4>
+                    <p class="card-subtitle text-muted">
+                        <strong>Total de Consultas:</strong> {{ conteo }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de historial -->
+    <div class="tbl_container">
+        <div class="table-responsive shadow-sm rounded-3">
+            <table class="table table-hover table-bordered align-middle text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Diagnóstico</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for consulta in entity %}
+                    <tr>
+                        <td>{{ consulta.idconsulta }}</td>
+                        <td>{{ consulta.fechaconsulta }}</td>
+                        <td>{{ consulta.horaconsulta }}</td>
+                        <td>{{ consulta.observaciones|truncatechars:50 }}</td>
+                        <td>
+                            <button 
+                                class="btn btn-sm btn-outline-info" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#modalConsulta{{ consulta.idconsulta }}">
+                                <i class="bi bi-file-earmark-text"></i> Ver detalles
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal de detalles -->
+                    <!-- Asegúrate de tener Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+<div class="modal fade" id="modalConsulta{{ consulta.idconsulta }}" tabindex="-1" aria-labelledby="modalLabel{{ consulta.idconsulta }}" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content rounded-4 shadow border-0">
+      <div class="modal-header bg-primary text-white rounded-top-4">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="modalLabel{{ consulta.idconsulta }}">
+          <i class="bi bi-journal-medical"></i> Consulta #{{ consulta.idconsulta }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body px-4 py-3">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <p class="mb-1 text-muted"><i class="bi bi-calendar-event me-2"></i><strong>Fecha:</strong></p>
+            <p>{{ consulta.fechaconsulta }}</p>
+          </div>
+          <div class="col-md-6">
+            <p class="mb-1 text-muted"><i class="bi bi-clock me-2"></i><strong>Hora:</strong></p>
+            <p>{{ consulta.horaconsulta }}</p>
+          </div>
+
+          <div class="col-md-6">
+            <p class="mb-1 text-muted"><i class="bi bi-currency-dollar me-2"></i><strong>Precio:</strong></p>
+            <p>${{ consulta.precioconsulta }}</p>
+          </div>
+          <div class="col-md-6">
+            <p class="mb-1 text-muted"><i class="bi bi-ui-checks me-2"></i><strong>Tipo:</strong></p>
+            <p>{{ consulta.tipo }}</p>
+          </div>
+
+          <div class="col-12">
+            <p class="mb-1 text-muted"><i class="bi bi-clipboard-pulse me-2"></i><strong>Diagnóstico completo:</strong></p>
+            <div class="border rounded-3 p-3 bg-light">
+              <p class="mb-0">{{ consulta.observaciones }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between px-4">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cerrar
+        </button>
+        <!-- Botones adicionales si los necesitas -->
+        <!-- <a href="/editarconsulta/{{ consulta.idconsulta }}" class="btn btn-primary"><i class="bi bi-pencil me-1"></i> Editar</a> -->
+      </div>
+    </div>
+  </div>
+</div>
+
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">No se encontraron consultas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% include "paginacion.html" %}
+    </div>
+</div>
+
+<!-- Bootstrap JS (asegúrate de tenerlo en tu base.html) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock content %}

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %} | Historial {% endblock title %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center mb-4">
+        <h1 class="fw-bold">Historial detallado</h1>
+    </div>
+
+    <!-- Datos del paciente -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Datos de la Consulta</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Paciente:</strong> {{ consulta.paciente }}</p>
+            <p><strong>Fecha de consulta:</strong> {{ consulta.fechaconsulta }}</p>
+            <p><strong>Peso:</strong> {{ consulta.peso }} kg</p>
+            <p><strong>Altura:</strong> {{ consulta.altura }} cm</p>
+            <p><strong>Temperatura:</strong> {{ consulta.temperatura }} °C</p>
+            <p><strong>Presión Arterial:</strong> {{ consulta.presionarterial }}</p>
+            <p><strong>Diagnóstico:</strong> {{ consulta.diagnostico }}</p>
+        </div>
+    </div>
+
+    <!-- Datos de la receta -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Receta Médica</h5>
+        </div>
+        <div class="card-body">
+            <p><strong>Medicamento:</strong> {{ receta.medicamento }}</p>
+            <p><strong>Dosis:</strong> {{ receta.dosis }}</p>
+            <p><strong>Duración:</strong> {{ receta.duracion }}</p>
+            <p><strong>Indicaciones:</strong> {{ receta.indicaciones }}</p>
+        </div>
+    </div>
+</div>
+{% endblock content %}
