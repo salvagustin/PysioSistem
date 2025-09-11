@@ -5,7 +5,7 @@
 {% block content %}
 {% load static %}
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-5">
   <div class="text-center mb-3">
     <h2 class="fw-bold mb-0">Pacientes</h2>
   </div>
@@ -52,23 +52,32 @@
 
   </div>
 
-  <!-- Vista tipo cards para móviles -->
-<div class="d-md-none"> 
+<!-- Vista tipo cards para móviles -->
+<div class="d-md-none">
     {% for paciente in entity %}
     <div class="card mb-3 shadow-sm">
         <div class="card-body">
             <h5 class="card-title fw-bold">{{ paciente.nombre }}</h5>
             <p class="card-text mb-1"><strong>Fecha nacimiento:</strong> {{ paciente.fecha_nacimiento }}</p>
             <p class="card-text mb-2"><strong>Teléfono:</strong> {{ paciente.telefono }}</p>
+            <p class="card-text mb-2"><strong>Usuario:</strong> 
+                {% if paciente.usuario %}
+                    {{ paciente.usuario.username }}
+                {% else %}
+                    Sin usuario asignado
+                {% endif %}
+            </p>
             <button class="btn btn-sm btn-info text-white"
-                            data-bs-toggle="modal"
-                            data-bs-target="#modalPaciente"
-                            data-id="{{ paciente.idpaciente }}"
-                            data-nombre="{{ paciente.nombre }}"
-                            data-fecha="{{ paciente.fecha_nacimiento }}"
-                            data-telefono="{{ paciente.telefono }}">
-                        Detalles
-                    </button>
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalPaciente"
+                    data-id="{{ paciente.idpaciente }}"
+                    data-nombre="{{ paciente.nombre }}"
+                    data-fecha="{{ paciente.fecha_nacimiento }}"
+                    data-telefono="{{ paciente.telefono }}"
+                    data-sexo="{{ paciente.sexo }}"
+                    data-user="{% if paciente.usuario %}{{ paciente.usuario.username }}{% endif %}">
+                Detalles
+            </button>
         </div>
     </div>
     {% empty %}
@@ -77,42 +86,66 @@
 </div>
 
     <!-- Tabla de Pacientes -->
-    <div class="table-responsive d-none d-md-block">
-    <table class="table table-bordered table-hover align-middle text-center custom-table">
+ <div class="table-responsive d-none d-md-block">
+    <table class="table table-bordered table-hover align-middle text-center custom-table-compact">
         <thead class="table-dark">
             <tr>
-                <th>Nombre</th>
-                <th>Fecha nacimiento</th>
-                <th>Teléfono</th>
-                <th>Acciones</th>
+                <th class="py-2">Numero</th>
+                <th class="py-2">Nombre</th>
+                <th class="py-2">Fecha nacimiento</th>
+                <th class="py-2">Teléfono</th>
+                <th class="py-2">Sexo</th>
+                <th class="py-2">Usuario</th>
+                <th class="py-2">Acciones</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody >
             {% for paciente in entity %}
-            <tr>
-                <td>{{ paciente.nombre }}</td>
-                <td>{{ paciente.fecha_nacimiento }}</td>
-                <td>{{ paciente.telefono }}</td>
-                <td>
-                    <button class="btn btn-sm btn-info text-white"
+            <tr class="table-row-compact">
+                <td class="py-2">{{ paciente.idpaciente }}</td>
+                <td class="py-2">{{ paciente.nombre }}</td>
+                <td class="py-2">{{ paciente.fecha_nacimiento }}</td>
+                <td class="py-2">{{ paciente.telefono }}</td>
+                <td class="py-2">
+                    {% if paciente.sexo == 'M' %}
+                        <span class="badge bg-primary">Masculino</span>
+                    {% elif paciente.sexo == 'F' %}
+                        <span class="badge bg-danger">Femenino</span>
+                    {% else %}
+                        <span class="badge bg-secondary">No especificado</span>
+                    {% endif %}
+                </td>
+                <td class="py-2">
+                {% if paciente.usuario %}
+                    {{ paciente.usuario.username }}
+                {% else %}
+                    Sin usuario asignado
+                {% endif %}
+            </td>
+                <td class="py-2">
+                    <button class="btn btn-sm btn-info text-white px-3 py-1"
                             data-bs-toggle="modal"
                             data-bs-target="#modalPaciente"
                             data-id="{{ paciente.idpaciente }}"
                             data-nombre="{{ paciente.nombre }}"
                             data-fecha="{{ paciente.fecha_nacimiento }}"
-                            data-telefono="{{ paciente.telefono }}">
-                        Detalles
+                            data-telefono="{{ paciente.telefono }}"
+                            data-sexo="{{ paciente.sexo }}"
+                            data-user="{% if paciente.usuario %}{{ paciente.usuario.username }}{% endif %}">
+                        <i class="fas fa-eye me-1"></i>Detalles
                     </button>
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4">No hay pacientes registrados.</td>
+                <td colspan="4" class="py-3 text-muted">
+                    <i class="fas fa-users me-2"></i>No hay pacientes registrados.
+                </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    </div>
+</div>
     {% include "paginacion.html" %}
 </div>
  
@@ -158,6 +191,26 @@
                         <div>
                             <h6 class="mb-0">Teléfono</h6>
                             <p class="text-muted mb-0" id="pacienteTelefono"></p>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                        <i class="bi bi-person-fill fs-4 text-info me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-0">Sexo</h6>
+                            <p class="text-muted mb-0" id="pacienteSexo"></p>   
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                        <i class="bi bi-person-circle fs-4 text-secondary me-3 mt-1"></i>
+                        <div>
+                            <h6 class="mb-0">Usuario</h6>
+                            <p class="text-muted mb-0" id="pacienteUsuario">
+                                {% if paciente.usuario %}
+                                    {{ paciente.usuario.username }}
+                                {% else %}
+                                    No asignado
+                                {% endif %}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -210,18 +263,16 @@
     </div>
 </div>
 {% if messages %}
-  <script>
+<script>
     document.addEventListener('DOMContentLoaded', function () {
-      {% for message in messages %}
-        Swal.fire({
-          icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}",
-          title: "{{ message|escapejs }}",
-          timer: 3000,
-          showConfirmButton: false
-        });
-      {% endfor %}
+        {% for message in messages %}
+            darkModeSwal({
+                icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+                title: "{{ message|escapejs }}",
+                timer: 3000
+            });
+        {% endfor %}
     });
-  </script>
+</script>
 {% endif %}
-
 {% endblock content %}

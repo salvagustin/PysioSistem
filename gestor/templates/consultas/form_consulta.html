@@ -9,138 +9,158 @@
 
 {% block content %}
 <div class="container py-4">
-    <div class="text-center mb-4">
-        <h2 class="fw-bold">
-            {% if form.instance.pk %} Editar Consulta {% else %} Nueva Consulta {% endif %}
-        </h2>
-        <p class="text-muted">Complete la información de la consulta</p>
-    </div>
+  <div class="text-center mb-4">
+    <h2 class="fw-bold">
+      {% if form.instance.pk %} Editar Consulta {% else %} Nueva Consulta {% endif %}
+    </h2>
+    <p class="text-muted">Complete la información de la consulta</p>
+  </div>
 
-    <div class="row gy-4">
-        <!-- Formulario de Consulta -->
-        <div class="col-12 col-lg-7">
-            <div class="card shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    {% if paciente_nombre %}
-                        <div class="alert alert-info mb-4">
-                            <strong>Paciente:</strong> {{ paciente_nombre }}
-                        </div>
-                    {% endif %}
-                    <form method="post" enctype="multipart/form-data" novalidate>
-                        {% csrf_token %}
-                        {{ form|crispy }}
+  <div class="row gy-4">
+    <!-- Formulario de Consulta -->
+    <div class="col-12 col-lg-7">
+      <div class="card shadow-sm rounded-4">
+        <div class="card-body p-4">
+          {% if paciente_nombre %}
+          <div class="alert alert-info mb-4">
+            <strong>Paciente:</strong> {{ paciente_nombre }}
+          </div>
+          {% endif %}
+          <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {{ form|crispy }}
 
-                        <div class="d-flex justify-content-between mt-4 flex-wrap gap-2">
-                            <a href="{% url 'ListaConsultas' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-x-circle"></i> Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i>
-                                {% if ConsultaForm.instance.pk %} Actualizar {% else %} Guardar {% endif %}
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            <div class="d-flex justify-content-between mt-4 flex-wrap gap-2">
+              <a href="{% url 'ListaConsultas' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle"></i> Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i>
+                {% if ConsultaForm.instance.pk %} Actualizar {% else %} Guardar {% endif %}
+              </button>
             </div>
-        </div>
-
-        <!-- Historial de Consultas -->
-        <div class="col-12 col-lg-5">
-            {% if historial_consultas %}
-                <div class="card shadow-sm rounded-4 h-100">
-                    <div class="card-header bg-light fw-semibold">
-                        Historial de Consultas
-                    </div>
-                    <div class="card-body" style="max-height: 600px; overflow-y: auto;">
-                        {% for consulta in historial_consultas %}
-                            <div class="border-bottom pb-2 mb-3">
-                                <small class="text-muted">{{ consulta.fechaconsulta|date:"d/m/Y" }}</small><br>
-                                <strong>Diagnóstico:</strong> {{ consulta.observaciones|default:"Sin diagnóstico" }}<br>
-                                <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#modalConsulta{{ consulta.idconsulta }}">
-                                    Ver detalles
-                                </button>
-                            </div>
-
-                            <!-- Modal por consulta -->
-                            <div class="modal fade" id="modalConsulta{{ consulta.idconsulta }}" tabindex="-1" aria-labelledby="modalConsultaLabel{{ consulta.idconsulta }}" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content shadow">
-
-      <!-- Header -->
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="modalConsultaLabel{{ consulta.idconsulta }}">
-          <i class="bi bi-file-earmark-medical-fill me-2"></i> Consulta del {{ consulta.fechaconsulta|date:"d/m/Y" }}
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-
-      <!-- Body -->
-      <div class="modal-body">
-        <div class="row gy-3">
-          <div class="col-12 col-md-6 d-flex align-items-start">
-            <i class="bi bi-hash fs-4 text-primary me-3 mt-1"></i>
-            <div>
-              <h6 class="mb-0">Número</h6>
-              <p class="text-muted mb-0">{{ consulta.idconsulta }}</p>
-            </div>
-          </div>
-          <div class="col-12 col-md-6 d-flex align-items-start">
-            <i class="bi bi-person-fill fs-4 text-info me-3 mt-1"></i>
-            <div>
-              <h6 class="mb-0">Paciente</h6>
-              <p class="text-muted mb-0">{{ consulta.paciente.nombre }}</p>
-            </div>
-          </div>
-          <div class="col-12 col-md-6 d-flex align-items-start">
-            <i class="bi bi-calendar-event-fill fs-4 text-warning me-3 mt-1"></i>
-            <div>
-              <h6 class="mb-0">Fecha</h6>
-              <p class="text-muted mb-0">{{ consulta.fechaconsulta|date:"d/m/Y" }}</p>
-            </div>
-          </div>
-          <div class="col-12 col-md-6 d-flex align-items-start">
-            <i class="bi bi-clock-fill fs-4 text-secondary me-3 mt-1"></i>
-            <div>
-              <h6 class="mb-0">Hora</h6>
-              <p class="text-muted mb-0">{{ consulta.horaconsulta }}</p>
-            </div>
-          </div>
-          <div class="col-12 col-md-6 d-flex align-items-start">
-            <i class="bi bi-cash-stack fs-4 text-success me-3 mt-1"></i>
-            <div>
-              <h6 class="mb-0">Precio</h6>
-              <p class="text-muted mb-0">$ {{ consulta.precioconsulta }}</p>
-            </div>
-          </div>
-          <div class="col-12 d-flex align-items-start">
-            <i class="bi bi-chat-left-text-fill fs-4 text-danger me-3 mt-1"></i>
-            <div>
-              <h6 class="mb-0">Diagnóstico</h6>
-              <p class="text-muted mb-0">{{ consulta.observaciones|linebreaks }}</p>
-            </div>
-          </div>
+          </form>
         </div>
       </div>
-
-            <!-- Footer -->
-            <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
-                
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                <i class="bi bi-x-circle me-1"></i> Cerrar
-                </button>
-            </div>
-
-            </div>
-        </div>
-        </div> 
-
-
-
-                        {% endfor %}
-                    </div>
-                </div>
-            {% endif %}
-        </div>
     </div>
+
+    <!-- Historial de Consultas -->
+    <div class="col-12 col-lg-5">
+      {% if historial_consultas %}
+      <div class="card shadow-sm rounded-4 h-100">
+        <div class="card-header bg-light fw-semibold">
+          Historial de Consultas
+        </div>
+        <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+          {% for consulta in historial_consultas %}
+          <div class="border-bottom pb-2 mb-3">
+            <small class="text-muted">{{ consulta.fechaconsulta|date:"d/m/Y" }}</small><br>
+            <strong>Diagnóstico:</strong> {{ consulta.observaciones|default:"Sin diagnóstico" }}<br>
+            <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal"
+              data-bs-target="#modalConsulta{{ consulta.idconsulta }}">
+              Ver detalles
+            </button>
+          </div>
+
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
+<!-- Modal por consulta -->
+          <div class="modal fade" id="modalConsulta{{ consulta.idconsulta }}" tabindex="-1"
+            aria-labelledby="modalConsultaLabel{{ consulta.idconsulta }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+              <div class="modal-content shadow">
+
+                <!-- Header -->
+                <div class="modal-header bg-success text-white">
+                  <h5 class="modal-title" id="modalConsultaLabel{{ consulta.idconsulta }}">
+                    <i class="bi bi-file-earmark-medical-fill me-2"></i> Consulta del {{
+                    consulta.fechaconsulta|date:"d/m/Y" }}
+                  </h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+                </div>
+
+                <!-- Body -->
+                <div class="modal-body">
+                  <div class="row gy-3">
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                      <i class="bi bi-hash fs-4 text-primary me-3 mt-1"></i>
+                      <div>
+                        <h6 class="mb-0">Número</h6>
+                        <p class="text-muted mb-0">{{ consulta.idconsulta }}</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                      <i class="bi bi-person-fill fs-4 text-info me-3 mt-1"></i>
+                      <div>
+                        <h6 class="mb-0">Paciente</h6>
+                        <p class="text-muted mb-0">{{ consulta.paciente.nombre }}</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                      <i class="bi bi-calendar-event-fill fs-4 text-warning me-3 mt-1"></i>
+                      <div>
+                        <h6 class="mb-0">Fecha</h6>
+                        <p class="text-muted mb-0">{{ consulta.fechaconsulta|date:"d/m/Y" }}</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                      <i class="bi bi-clock-fill fs-4 text-secondary me-3 mt-1"></i>
+                      <div>
+                        <h6 class="mb-0">Hora</h6>
+                        <p class="text-muted mb-0">{{ consulta.horaconsulta }}</p>
+                      </div>
+                    </div>
+                    <div class="col-12 col-md-6 d-flex align-items-start">
+                      <i class="bi bi-cash-stack fs-4 text-success me-3 mt-1"></i>
+                      <div>
+                        <h6 class="mb-0">Precio</h6>
+                        <p class="text-muted mb-0">$ {{ consulta.precioconsulta }}</p>
+                      </div>
+                    </div>
+                    <div class="col-12 d-flex align-items-start">
+                      <i class="bi bi-chat-left-text-fill fs-4 text-danger me-3 mt-1"></i>
+                      <div>
+                        <h6 class="mb-0">Diagnóstico</h6>
+                        <p class="text-muted mb-0">{{ consulta.observaciones|linebreaks }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i> Cerrar
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+    Swal.fire({
+      icon: "info", // Cambia dinámicamente según tu caso
+      title: "Mensaje",
+      background: "#2c2f3e",
+      color: "#f5f5f5",
+      iconColor: "#03A9F4", // O el color que prefieras para info
+      timer: 3000,
+      showConfirmButton: false,
+    });
+
+    {% endfor %}
+  });
+</script>
+{% endif %}
+
 {% endblock %}

@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %} | Guías {% endblock %}
+
+{% block content %}
+<div class="container py-5">
+<h1 class="text-center">GUÍAS PRÁCTICAS</h1>
+</div>
+<div class="d-flex justify-content-center flex-wrap my-4">
+    {% for categoria in categorias %}
+        <button class="btn btn-outline-primary m-2 categoria-btn" data-categoria="{{ categoria }}">
+            {{ categoria }}
+        </button>
+    {% endfor %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalEjercicios" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content p-3">
+      <h5 class="modal-title">Selecciona filtros</h5>
+      <div class="modal-body">
+        <select id="subcategoriaSelect" class="form-select my-2">
+            <option selected disabled>Seleccione una subcategoría</option>
+        </select>
+        <select id="semanaSelect" class="form-select my-2">
+            <option selected disabled>Seleccione una semana</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button id="filtrarBtn" class="btn btn-primary">Filtrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ejerciciosContainer" class="container mt-5"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let categoriaActual = '';
+    document.querySelectorAll('.categoria-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            categoriaActual = btn.dataset.categoria;
+            fetch(`/api/subcategorias/?categoria=${categoriaActual}`)
+            .then(response => response.json())
+            .then(data => {
+                const subSelect = document.getElementById('subcategoriaSelect');
+                subSelect.innerHTML = '<option disabled selected>Seleccione una subcategoría</option>';
+                data.subcategorias.forEach(sub => {
+                    subSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+                });
+                const semanaSelect = document.getElementById('semanaSelect');
+                semanaSelect.innerHTML = '<option disabled selected>Seleccione una semana</option>';
+                data.semanas.forEach(sem => {
+                    semanaSelect.innerHTML += `<option value="${sem}">Semana ${sem}</option>`;
+                });
+                new bootstrap.Modal(document.getElementById('modalEjercicios')).show();
+            });
+        });
+    });
+
+    document.getElementById('filtrarBtn').addEventListener('click', () => {
+        const sub = document.getElementById('subcategoriaSelect').value;
+        const semana = document.getElementById('semanaSelect').value;
+        fetch(`/api/ejercicios/?categoria=${categoriaActual}&subcategoria=${sub}&semana=${semana}`)
+        .then(response => response.json())
+        .then(data => {
+            let container = document.getElementById('ejerciciosContainer');
+            container.innerHTML = '';
+            data.ejercicios.forEach(ej => {
+                let imagenesHTML = ej.imagenes.map(img => `<img src="${img}" class="img-thumbnail mx-1" style="width:150px;">`).join('');
+                container.innerHTML += `
+    <div class="card shadow-sm mb-5">
+        <div class="card-body">
+            <h4 class="card-title text-primary">${ej.nombre}</h4>
+            <p class="card-text">${ej.descripcion}</p>
+            <div id="carousel-${ej.nombre.replace(/\s/g, '')}" class="carousel slide my-3" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    ${ej.imagenes.map((img, idx) => `
+                        <div class="carousel-item ${idx === 0 ? 'active' : ''}">
+                            <img src="${img}" class="d-block mx-auto" style="max-height: 300px;">
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carousel-${ej.nombre.replace(/\s/g, '')}" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carousel-${ej.nombre.replace(/\s/g, '')}" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
+            </div>
+            <a href="${ej.pdf}" target="_blank" class="btn btn-outline-success">Abrir PDF</a>
+        </div>
+    </div>
+`;
+
+            });
+            bootstrap.Modal.getInstance(document.getElementById('modalEjercicios')).hide();
+        });
+    });
+});
+</script>
+{% endblock content %}

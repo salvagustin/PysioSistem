@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %} | Formulario Ejercicio {% endblock %}
+
+{% block extrahead %}
+{{ EjercicioForm.media }}
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">
+            {% if form.instance.pk %} Editar Ejercicio {% else %} Nuevo Ejercicio {% endif %}
+        </h2>
+        <p class="text-muted">Complete la información de la Ejercicio</p>
+    </div>
+
+    <div class="row gy-4">
+        <!-- Formulario de Ejercicio -->
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <!-- Imágenes existentes - Solo mostrar si es edición -->
+                        {% if form.instance.pk %}
+                            <div class="mb-3">
+                                <label class="form-label">Imágenes existentes:</label>
+                                <div id="imagenes-existentes" class="d-flex flex-wrap gap-3">
+                                    {% for img in form.instance.imagenes.all %}
+                                        <div class="position-relative">
+                                            <img src="{{ img.imagen.url }}" class="img-thumbnail" style="max-height: 150px;">
+                                            <button type="button"
+                                                    class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 eliminar-imagen"
+                                                    data-id="{{ img.id }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    {% empty %}
+                                        <p class="text-muted">No hay imágenes.</p>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Input para nuevas imágenes -->
+                        <div class="mb-3">
+                            <label for="id_imagenes" class="form-label">
+                                {% if form.instance.pk %}Agregar nuevas imágenes:{% else %}Imágenes:{% endif %}
+                            </label>
+                            <input type="file" name="imagenes" id="id_imagenes" class="form-control" multiple>
+                        </div>
+
+                        
+                        <div class="d-flex justify-content-between mt-4 flex-wrap gap-2">
+                            <a href="{% url 'ListaEjercicios' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i>
+                                {% if form.instance.pk %} Actualizar {% else %} Guardar {% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Solo agregar event listeners si existen botones de eliminar imagen
+    const botonesEliminar = document.querySelectorAll('.eliminar-imagen');
+    if (botonesEliminar.length > 0) {
+        botonesEliminar.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                Swal.fire({
+                    title: '¿Eliminar esta imagen?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch(`/eliminar-imagen/${id}/`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRFToken': '{{ csrf_token }}',
+                            },
+                        }).then(response => {
+                            if (response.ok) {
+                                Swal.fire('Imagen eliminada', '', 'success').then(() => location.reload());
+                            } else {
+                                Swal.fire('Error al eliminar', '', 'error');
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    }
+});
+</script>
+
+{% endblock %}

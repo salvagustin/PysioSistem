@@ -1,3 +1,5 @@
+
+
 {% extends 'base.html' %}
 
 {% block title %} | Citas {% endblock title %}
@@ -12,7 +14,7 @@
     </h1>
   </div>
 
-  <!-- Controles superiores -->
+   <!-- Controles superiores -->
   <div class="row mb-4 justify-content-center">
     <div class="col-12 col-md-10">
       <div class="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
@@ -26,12 +28,12 @@
             <i class="bi bi-arrow-clockwise me-2"></i> Restablecer
           </a>
         </div>
-
+        {% if user.groups.all.0.name in 'doctor nutricionista fisioterapeuta' %}
         <!-- Resumen -->
         <div class="text-center text-md-start">
           <div class="fw-semibold">Semana: <span class="text-primary">{{ semana }}</span>  Citas: <span class="text-success">{{ conteocitas }}</span></div>
         </div>
-
+        {% endif %}
         <!-- Filtro por semana -->
         <div class="col-12 col-md-auto">
         <div class="row g-2 align-items-center justify-content-center justify-content-md-start">
@@ -55,7 +57,13 @@
       </div>
     </div>
   </div>
-    <!-- Tabla de horarios -->
+
+
+
+
+  {% if user.groups.all.0.name in 'doctor nutricionista fisioterapeuta' %}
+     <!-- Tabla de horarios -->
+  <div class="desktop-table">
     <div class="table-responsive" style="overflow-x: auto;">
         <table class="table table-bordered text-center align-middle mb-0" style="min-width: 700px; table-layout: fixed;">
             <thead class="table-light">
@@ -81,14 +89,15 @@
                 {% else %}
                 <button
                     type="button" 
-                    class="btn  btn-sm "
+                    class="btn btn-appointment btn-sm"
                     data-bs-toggle="modal" 
                     data-bs-target="#modalCita"
                     data-id="{{ cita.idcita }}"
                     data-nombre="{{ cita.paciente.nombre }}"
                     data-fechacita="{{ cita.fechacita }}"
                     data-horacita="{{ cita.horacita }}"
-                    data-observaciones="{{ cita.observaciones }}">
+                    data-observaciones="{{ cita.observaciones }}"
+                    data-doctor="{{ cita.doctor.nombre }}">
                     {{ cita.paciente.nombre|truncatechars:20 }}
                 </button>
                 {% endif %}
@@ -99,6 +108,234 @@
             </tbody>
         </table>
     </div>
+  </div>
+
+      <!-- Vista Mobile - Tarjetas por día -->
+  <div class="mobile-cards">
+      <!-- Lunes -->
+      <div class="day-card">
+          <div class="day-header">
+              📅 Lunes: {{ fechalunes }}
+          </div>
+          {% for horario, fila in horarios_citas %}
+          <div class="time-slot">
+              <span class="time-label">{{ horario }}</span>
+              <div class="appointment-content">
+                  {% if fila.0 == 2 %}
+                  <span class="available-badge">Disponible</span>
+                  {% else %}
+                  <button class="btn appointment-btn" 
+                          data-bs-toggle="modal" data-bs-target="#modalCita"
+                          data-id="{{ fila.0.idcita }}"
+                          data-nombre="{{ fila.0.paciente.nombre }}"
+                          data-fechacita="{{ fila.0.fechacita }}"
+                          data-horacita="{{ fila.0.horacita }}"
+                          data-observaciones="{{ fila.0.observaciones }}"
+                          data-doctor="{{ fila.0.doctor.nombre }}">
+                      {{ fila.0.paciente.nombre|truncatechars:25 }}
+                  </button>
+                  {% endif %}
+              </div>
+          </div>
+          {% endfor %}
+      </div>
+
+      <!-- Martes -->
+      <div class="day-card">
+          <div class="day-header">
+              📅 Martes: {{ fechamartes }}
+          </div>
+          {% for horario, fila in horarios_citas %}
+          <div class="time-slot">
+              <span class="time-label">{{ horario }}</span>
+              <div class="appointment-content">
+                  {% if fila.1 == 2 %}
+                  <span class="available-badge">Disponible</span>
+                  {% else %}
+                  <button class="btn appointment-btn" 
+                          data-bs-toggle="modal" data-bs-target="#modalCita"
+                          data-id="{{ fila.1.idcita }}"
+                          data-nombre="{{ fila.1.paciente.nombre }}"
+                          data-fechacita="{{ fila.1.fechacita }}"
+                          data-horacita="{{ fila.1.horacita }}"
+                          data-observaciones="{{ fila.1.observaciones }}">
+                      {{ fila.1.paciente.nombre|truncatechars:25 }}
+                  </button>
+                  {% endif %}
+              </div>
+          </div>
+          {% endfor %}
+      </div>
+
+      <!-- Miércoles -->
+      <div class="day-card">
+          <div class="day-header">
+              📅 Miércoles: {{ fechamiercoles }}
+          </div>
+          {% for horario, fila in horarios_citas %}
+          <div class="time-slot">
+              <span class="time-label">{{ horario }}</span>
+              <div class="appointment-content">
+                  {% if fila.2 == 2 %}
+                  <span class="available-badge">Disponible</span>
+                  {% else %}
+                  <button class="btn appointment-btn" 
+                          data-bs-toggle="modal" data-bs-target="#modalCita"
+                          data-id="{{ fila.2.idcita }}"
+                          data-nombre="{{ fila.2.paciente.nombre }}"
+                          data-fechacita="{{ fila.2.fechacita }}"
+                          data-horacita="{{ fila.2.horacita }}"
+                          data-observaciones="{{ fila.2.observaciones }}">
+                      {{ fila.2.paciente.nombre|truncatechars:25 }}
+                  </button>
+                  {% endif %}
+              </div>
+          </div>
+          {% endfor %}
+      </div>
+
+      <!-- Jueves -->
+      <div class="day-card">
+          <div class="day-header">
+              📅 Jueves: {{ fechajueves }}
+          </div>
+          {% for horario, fila in horarios_citas %}
+          <div class="time-slot">
+              <span class="time-label">{{ horario }}</span>
+              <div class="appointment-content">
+                  {% if fila.3 == 2 %}
+                  <span class="available-badge">Disponible</span>
+                  {% else %}
+                  <button class="btn appointment-btn" 
+                          data-bs-toggle="modal" data-bs-target="#modalCita"
+                          data-id="{{ fila.3.idcita }}"
+                          data-nombre="{{ fila.3.paciente.nombre }}"
+                          data-fechacita="{{ fila.3.fechacita }}"
+                          data-horacita="{{ fila.3.horacita }}"
+                          data-observaciones="{{ fila.3.observaciones }}">
+                      {{ fila.3.paciente.nombre|truncatechars:25 }}
+                  </button>
+                  {% endif %}
+              </div>
+          </div>
+          {% endfor %}
+      </div>
+
+      <!-- Viernes -->
+      <div class="day-card">
+          <div class="day-header">
+              📅 Viernes: {{ fechaviernes }}
+          </div>
+          {% for horario, fila in horarios_citas %}
+          <div class="time-slot">
+              <span class="time-label">{{ horario }}</span>
+              <div class="appointment-content">
+                  {% if fila.4 == 2 %}
+                  <span class="available-badge">Disponible</span>
+                  {% else %}
+                  <button class="btn appointment-btn" 
+                          data-bs-toggle="modal" data-bs-target="#modalCita"
+                          data-id="{{ fila.4.idcita }}"
+                          data-nombre="{{ fila.4.paciente.nombre }}"
+                          data-fechacita="{{ fila.4.fechacita }}"
+                          data-horacita="{{ fila.4.horacita }}"
+                          data-observaciones="{{ fila.4.observaciones }}">
+                      {{ fila.4.paciente.nombre|truncatechars:25 }}
+                  </button>
+                  {% endif %}
+              </div>
+          </div>
+          {% endfor %}
+      </div>
+  </div>
+  {% elif user.groups.all.0.name == 'administrador' %}
+    <!-- Vista tipo Cards para móviles -->
+    <div class="d-md-none">
+        {% for cita in citas %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title fw-bold">Consulta #{{ cita.idcita }}</h5>
+                <p class="mb-1"><strong>Paciente:</strong> {{ cita.paciente.nombre }}</p>
+                <p class="mb-1"><strong>Fecha:</strong> {{ cita.fechacita|date:"d/m/Y" }}</p>
+                <p class="mb-1"><strong>Hora:</strong> {{ cita.horacita }}</p>
+                <p class="mb-1"><strong>Doctor:</strong> ${{ cita.doctor.nombre }}</p>
+                <p class="mb-2"><strong>Observaciones:</strong> {{ cita.observaciones|default:"Sin observaciones" }}</p>
+                <div class="d-flex flex-wrap gap-2">
+                    
+                    <button class="btn btn-sm btn-info text-white"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modalCita"
+                            data-id="{{ cita.idcita }}"
+                            data-nombre="{{ cita.paciente.nombre }}"
+                            data-fechacita="{{ cita.fechacita }}"
+                            data-horacita="{{ cita.horacita }}"
+                            data-observaciones="{{ cita.observaciones }}"
+                            data-doctor="{{ cita.doctor.nombre }}">
+                        <i class="bi bi-eye"></i> Detalles
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center">No hay citas registradas.</div>
+        {% endfor %}
+        {% include "paginacion.html" %}
+    </div>
+
+    <!-- Tabla solo visible en escritorio -->
+    <div class="tbl_container d-none d-md-block">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Número</th>
+                        <th>Paciente</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Observaciones</th>
+                        <th>Doctor</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cita in citas %}
+                    <tr>
+                        <td>{{ cita.idcita }}</td>
+                        <td>{{ cita.paciente.nombre|truncatechars:20 }}</td>
+                        <td>{{ cita.fechacita }}</td>
+                        <td>{{ cita.horacita }}</td>
+                        <td>{{ cita.observaciones|truncatechars:30 }}</td>
+                        <td>{{ cita.doctor.nombre }}</td>
+                        
+                        <td>
+                            <div class="d-flex flex-wrap justify-content-center gap-1">
+                                <button
+                                    type="button" 
+                                    class="btn btn-info btn-sm text-white"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalCita"
+                                    data-id="{{ cita.idcita }}"
+                                    data-nombre="{{ cita.paciente.nombre }}"
+                                    data-fechacita="{{ cita.fechacita }}"
+                                    data-horacita="{{ cita.horacita }}"
+                                    data-observaciones="{{ cita.observaciones }}"
+                                    data-doctor="{{ cita.doctor.nombre }}">
+                                    Detalles
+                                </button>
+                            </div> 
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">No hay citas registradas.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include "paginacion.html" %}
+    </div>
+  {% endif %}
 
   <!-- Modal para agregar cita -->
 <div class="modal fade" id="modalAgregarCita" tabindex="-1" aria-labelledby="modalAgregarCitaLabel" aria-hidden="true">
@@ -108,7 +345,7 @@
       <!-- Header -->
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title" id="modalAgregarConsultaLabel">
-          <i class="bi bi-person-plus-fill me-2"></i> Seleccionar Paciente
+          <i class="bi bi-person-plus-fill me-2"></i>Nueva cita
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
@@ -120,9 +357,9 @@
             <div class="col-12 d-flex align-items-start">
               <i class="bi bi-person-fill-add fs-4 text-info me-3 mt-1"></i>
               <div class="w-100">
-                <h6 class="mb-1">Paciente</h6>
+                <h6 class="mb-1">Seleccionar paciente</h6>
                 <select class="form-select" name="paciente_id" required>
-                  <option value="" disabled selected>Selecciona un paciente</option>
+                  <option value="" disabled selected>Pacientes</option>
                   {% for paciente in pacientes %}
                     <option value="{{ paciente.idpaciente }}">{{ paciente.nombre }}</option>
                   {% endfor %}
@@ -153,10 +390,10 @@
  <!-- Modal para ver cita -->
 <div class="modal fade" id="modalCita" tabindex="-1" aria-labelledby="modalCitaLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content shadow rounded-4">
+    <div class="modal-content shadow-lg rounded-4 border-0">
 
       <!-- Header -->
-      <div class="modal-header bg-info text-white rounded-top-4">
+      <div class="modal-header bg-primary text-white rounded-top-4">
         <h5 class="modal-title" id="modalCitaLabel">
           <i class="bi bi-calendar-check-fill me-2"></i> Detalles de la Cita
         </h5>
@@ -164,13 +401,13 @@
       </div>
 
       <!-- Body -->
-      <div class="modal-body py-4 px-4">
+      <div class="modal-body px-4 py-4">
         <div class="row gy-4">
 
           <!-- Paciente -->
-          <div class="col-12 mb-3">
+          <div class="col-md-6">
             <div class="d-flex align-items-start">
-              <i class="bi bi-person-circle fs-4 text-primary me-3 mt-1"></i>
+              <i class="bi bi-person-fill fs-4 text-primary me-3"></i>
               <div>
                 <h6 class="mb-1">Paciente</h6>
                 <p id="citaNombre" class="text-muted mb-0"></p>
@@ -178,17 +415,32 @@
             </div>
           </div>
 
-          <!-- Fecha y Hora -->
-          <div class="col-12 d-flex flex-wrap gap-5 mb-3">
+          <!-- Doctor -->
+          <div class="col-md-6">
             <div class="d-flex align-items-start">
-              <i class="bi bi-calendar-event-fill fs-4 text-success me-3 mt-1"></i>
+              <i class="bi bi-person-circle fs-4 text-info me-3"></i>
+              <div>
+                <h6 class="mb-1">Doctor</h6>
+                <p id="citaDoctor" class="text-muted mb-0"></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fecha -->
+          <div class="col-md-6">
+            <div class="d-flex align-items-start">
+              <i class="bi bi-calendar-event-fill fs-4 text-success me-3"></i>
               <div>
                 <h6 class="mb-1">Fecha</h6>
                 <p id="citaFechacita" class="text-muted mb-0"></p>
               </div>
             </div>
+          </div>
+
+          <!-- Hora -->
+          <div class="col-md-6">
             <div class="d-flex align-items-start">
-              <i class="bi bi-clock-history fs-4 text-warning me-3 mt-1"></i>
+              <i class="bi bi-clock-fill fs-4 text-warning me-3"></i>
               <div>
                 <h6 class="mb-1">Hora</h6>
                 <p id="citaHoracita" class="text-muted mb-0"></p>
@@ -199,7 +451,7 @@
           <!-- Observaciones -->
           <div class="col-12">
             <div class="d-flex align-items-start">
-              <i class="bi bi-chat-left-text fs-4 text-secondary me-3 mt-1"></i>
+              <i class="bi bi-chat-left-text-fill fs-4 text-secondary me-3"></i>
               <div>
                 <h6 class="mb-1">Observaciones</h6>
                 <p id="citaObservaciones" class="text-muted mb-0"></p>
@@ -211,12 +463,11 @@
       </div>
 
       <!-- Footer -->
-      <div class="modal-footer border-top-0 d-flex flex-wrap gap-2 justify-content-between">
+      <div class="modal-footer bg-light rounded-bottom-4 border-top-0 d-flex justify-content-between flex-wrap gap-2">
         <div class="d-flex flex-wrap gap-2">
           <a id="btnEditarCita" class="btn btn-outline-success">
             <i class="bi bi-pencil-square me-1"></i> Editar
           </a>
-
           <button 
             class="btn btn-outline-danger"
             data-bs-toggle="modal"
@@ -233,6 +484,7 @@
     </div>
   </div>
 </div>
+
 
   <!-- Modal Confirmar Eliminación -->
 <div class="modal fade" id="modalConfirmarEliminarCita" tabindex="-1">
@@ -255,8 +507,6 @@
         </div>
     </div>
 </div>
-
-
 </div>
 
 <script>
@@ -305,17 +555,16 @@
 </script>
 
 {% if messages %}
-  <script>
+<script>
     document.addEventListener('DOMContentLoaded', function () {
-      {% for message in messages %}
-        Swal.fire({
-          icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}",
-          title: "{{ message|escapejs }}",
-          timer: 4000,
-          showConfirmButton: false
-        });
-      {% endfor %}
+        {% for message in messages %}
+            darkModeSwal({
+                icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+                title: "{{ message|escapejs }}",
+                timer: 3000
+            });
+        {% endfor %}
     });
-  </script>
+</script>
 {% endif %}
 {% endblock content %}

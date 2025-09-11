@@ -1,0 +1,306 @@
+{% extends 'base.html' %}
+
+{% block title %} | Citas {% endblock title %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="text-center mb-3">
+    <h2 class="fw-bold">Ejercicios</h2>
+  </div>
+
+  <!-- Controles -->
+  <div class="row gy-3 align-items-center mb-2">
+    <div class="col-12 col-md-4 d-flex flex-column flex-md-row justify-content-center align-items-center gap-2">
+      <a class="btn btn-primary w-100 d-flex align-items-center justify-content-center"
+         href="{% url 'crear_ejercicio' %}">
+        <i class="bi bi-plus-circle fs-5 me-2"></i> <span>Ejercicio</span>
+      </a>
+      <a href="/ejercicios/" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center">
+        <i class="bi bi-arrow-counterclockwise fs-5 me-2"></i> <span>Restablecer</span>
+      </a>
+    </div>
+
+    <div class="col-12 col-md-8">
+      <form method="get" class="row g-2 justify-content-center">
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <select class="form-select form-select-sm" name="filtro">
+            <option value="nombre" {% if filtro == "nombre" %}selected{% endif %}>Nombre</option>
+            <option value="categoria" {% if filtro == "categoria" %}selected{% endif %}>Categoría</option>
+            <option value="semana" {% if filtro == "semana" %}selected{% endif %}>Semana</option>
+          </select>
+        </div>
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <input type="text" name="buscar" class="form-control form-control-sm" placeholder="Buscar..." value="{{ buscar }}">
+        </div>
+        <div class="col-12 col-sm-4 col-md-auto">
+          <button type="submit" class="btn btn-success btn-sm w-100 d-flex align-items-center justify-content-center">
+            <i class="bi bi-search fs-5 me-2"></i> <span>Buscar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Cards para móviles -->
+  <div class="d-md-none">
+    {% for ejercicio in entity %}
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title fw-bold">#{{ ejercicio.idejercicio }} - {{ ejercicio.nombre }}</h5>
+        <p class="mb-1"><strong>Categoría:</strong> {{ ejercicio.categoria }}</p>
+        <p class="mb-1"><strong>Semana:</strong> {{ ejercicio.semana }}</p>
+        <p class="mb-1"><strong>Descripción:</strong> {{ ejercicio.descripcion }}</p>
+        {% if ejercicio.imagen %}
+        <img src="{{ ejercicio.imagen.url }}" class="img-fluid rounded mb-2" alt="Imagen del ejercicio">
+        {% endif %}
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-sm btn-info text-white"
+                data-bs-toggle="modal"
+                data-bs-target="#modalEjercicio"
+                data-id="{{ ejercicio.idejercicio }}"
+                data-nombre="{{ ejercicio.nombre }}"
+                data-categoria="{{ ejercicio.categoria }}"
+                data-subcategoria="{{ ejercicio.subcategoria }}"
+                data-semana="{{ ejercicio.semana }}"
+                data-descripcion="{{ ejercicio.descripcion }}"
+                data-imagenes='[
+                      {% for imagen in ejercicio.imagenes.all %}
+                          {"id": {{ imagen.id }}, "url": "{{ imagen.imagen.url }}"}{% if not forloop.last %},{% endif %}
+                      {% endfor %}
+                  ]'>
+            <i class="bi bi-eye"></i> Detalles
+        </button>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="text-center">No hay ejercicios registrados.</div>
+    {% endfor %}
+    {% include "paginacion.html" %}
+  </div>
+
+  <!-- Tabla para escritorio -->
+  <div class="tbl_container d-none d-md-block">
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover align-middle text-center">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Semana</th>
+            <th>Descripción</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ejercicio in entity %}
+          <tr>
+            <td>{{ ejercicio.idejercicio }}</td>
+            <td>{{ ejercicio.nombre|truncatechars:20 }}</td>
+            <td>{{ ejercicio.categoria }}</td>
+            <td>{{ ejercicio.semana }}</td>
+            <td>{{ ejercicio.descripcion|truncatechars:30 }}</td>
+            <td>
+              <button class="btn btn-sm btn-info text-white"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modalEjercicio"
+                      data-id="{{ ejercicio.idejercicio }}"
+                      data-nombre="{{ ejercicio.nombre }}"
+                      data-categoria="{{ ejercicio.categoria }}"
+                      data-subcategoria="{{ ejercicio.subcategoria }}"
+                      data-semana="{{ ejercicio.semana }}"
+                      data-descripcion="{{ ejercicio.descripcion }}"
+                      data-imagenes='[
+                      {% for imagen in ejercicio.imagenes.all %}
+                          {"id": {{ imagen.id }}, "url": "{{ imagen.imagen.url }}"}{% if not forloop.last %},{% endif %}
+                      {% endfor %}
+                  ]'>
+                  <i class="bi bi-eye"></i> Detalles
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">No hay ejercicios registrados.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "paginacion.html" %}
+  </div>
+</div>
+
+<!-- Modal Detalles de Ejercicios -->
+<div class="modal fade" id="modalEjercicio" tabindex="-1" aria-labelledby="modalEjercicioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content shadow-lg border-0 rounded-4">
+
+      <!-- Header -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalEjercicioLabel">
+          <i class="bi bi-info-circle-fill me-2"></i> Información del Ejercicio
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <div class="row gy-3">
+
+          <div class="col-md-6 d-flex align-items-start">
+            <i class="bi bi-hash fs-4 text-primary me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">ID</h6>
+              <p class="text-muted mb-0" id="ejercicioId"></p>
+            </div>
+          </div>
+
+          <div class="col-md-6 d-flex align-items-start">
+            <i class="bi bi-bookmark-fill fs-4 text-info me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Nombre</h6>
+              <p class="text-muted mb-0" id="ejercicioNombre"></p>
+            </div>
+          </div>
+
+          <div class="col-md-6 d-flex align-items-start">
+            <i class="bi bi-tags-fill fs-4 text-success me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Categoría</h6>
+              <p class="text-muted mb-0" id="ejercicioCategoria"></p>
+            </div>
+          </div>
+
+          <div class="col-md-6 d-flex align-items-start">
+            <i class="bi bi-tag-fill fs-4 text-warning me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Subcategoría</h6>
+              <p class="text-muted mb-0" id="ejercicioSubcategoria"></p>
+            </div>
+          </div>
+
+          <div class="col-md-6 d-flex align-items-start">
+            <i class="bi bi-calendar-week-fill fs-4 text-secondary me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Semana</h6>
+              <p class="text-muted mb-0" id="ejercicioSemana"></p>
+            </div>
+          </div>
+
+          <div class="col-12 d-flex align-items-start">
+            <i class="bi bi-chat-left-text fs-4 text-danger me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Descripción</h6>
+              <p class="text-muted mb-0" id="ejercicioDescripcion"></p>
+            </div>
+          </div>
+
+          <div class="col-12 d-flex align-items-start">
+            <i class="bi bi-images fs-4 text-warning me-3 mt-1"></i>
+            <div class="w-100">
+              <div class="col-12"><strong>Imágenes:</strong> <div id="modalImagenes" class="d-flex flex-wrap gap-2 mt-2"></div></div></div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+        <div class="d-flex flex-wrap gap-2">
+          <a id="btnEditarEjercicio" class="btn btn-outline-success">
+            <i class="bi bi-pencil-square me-1"></i> Editar
+          </a>
+          <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalConfirmarEliminarEjercicio" data-bs-dismiss="modal">
+            <i class="bi bi-trash"></i> Eliminar
+          </button>
+        </div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="modalConfirmarEliminarEjercicio" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">¿Eliminar Ejercicio?</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de eliminar este ejercicio?</p>
+      </div>
+      <div class="modal-footer">
+        <form id="formEliminarEjercicio" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm">Sí, eliminar</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        {% for message in messages %}
+            darkModeSwal({
+                icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+                title: "{{ message|escapejs }}",
+                timer: 3000
+            });
+        {% endfor %}
+    });
+</script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const modalEjercicio = document.getElementById('modalEjercicio');
+
+  modalEjercicio.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    
+    document.getElementById('ejercicioId').textContent = button.getAttribute('data-id');
+    document.getElementById('ejercicioNombre').textContent = button.getAttribute('data-nombre');
+    document.getElementById('ejercicioCategoria').textContent = button.getAttribute('data-categoria');
+    document.getElementById('ejercicioSubcategoria').textContent = button.getAttribute('data-subcategoria');
+    document.getElementById('ejercicioSemana').textContent = button.getAttribute('data-semana');
+    document.getElementById('ejercicioDescripcion').textContent = button.getAttribute('data-descripcion');
+
+    const imagenesContainer = document.getElementById('modalImagenes');
+    imagenesContainer.innerHTML = '';
+
+    try {
+      const imagenes = JSON.parse(button.getAttribute('data-imagenes'));
+      imagenes.forEach(img => {
+        const imgElement = document.createElement('img');
+        imgElement.src = img.url;
+        imgElement.className = 'img-thumbnail';
+        imgElement.style.maxHeight = '120px';
+        imgElement.style.marginRight = '10px';
+        imagenesContainer.appendChild(imgElement);
+      });
+    } catch (e) {
+      console.error('Error parsing imágenes:', e);
+    }
+
+    const ejercicioId = button.getAttribute('data-id');
+    document.getElementById('btnEditarEjercicio').href = `/editarejercicio/${ejercicioId}/`;
+    document.getElementById('formEliminarEjercicio').action = `/eliminarejercicio/${ejercicioId}/`;
+
+  });
+});
+</script>
+
+
+
+{% endblock %}

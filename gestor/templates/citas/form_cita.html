@@ -34,6 +34,8 @@
                             <a href="{% url 'ListaCitas' %}" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-circle"></i> Cancelar
                             </a>
+                            {{ form.paciente }}
+
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-save"></i>
                                 {% if CitaForm.instance.pk %} Actualizar {% else %} Guardar {% endif %}
@@ -156,4 +158,47 @@
     });
   </script>
 {% endif %}  
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fechaInput = document.querySelector('input[type="date"]');
+    const horaSelect = document.querySelector('select[name="horacita"]');
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    // Restringir fecha mínima
+    if (fechaInput) {
+        fechaInput.setAttribute('min', todayStr);
+    }
+
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function (e) {
+        const fechaSeleccionada = fechaInput.value;
+        const horaSeleccionada = horaSelect.value;
+
+        // Validamos existencia de datos
+        if (!fechaSeleccionada || !horaSeleccionada) return;
+
+        // Convertir a número
+        const hora = parseInt(horaSeleccionada);
+
+        // Crear objeto de fecha con hora exacta
+        const fechaHoraCita = new Date(fechaSeleccionada + 'T' + hora.toString().padStart(2, '0') + ':00:00');
+
+
+        if (fechaHoraCita < now) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Fecha u hora inválida',
+                text: 'No puedes agendar una cita en el pasado.',
+                timer: 3000,
+                showConfirmButton: false
+            });
+        }
+    });
+});
+</script>
+
+
 {% endblock content %}

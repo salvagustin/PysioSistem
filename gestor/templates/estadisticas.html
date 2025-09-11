@@ -7,7 +7,7 @@
     <div class="text-center mb-5">
         <h1 class="fw-bold">Reportes</h1>
     </div>
-
+    
     <!-- Tarjetas resumen -->
     <div class="row text-center mb-5">
         <div class="col-md-4 mb-3">
@@ -29,7 +29,7 @@
                     <p class="card-text">Citas: <strong>{{ citasanio }}</strong></p>
                     <p class="card-text">Pacientes: <strong>{{ pacientesanio }}</strong></p>
                     <p class="card-text">Devengado: <strong>${{ devengadoanio }}</strong></p>
-                  </div>
+                </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
@@ -49,8 +49,9 @@
     <div class="row mb-5">
         <div class="col-md-12">
             <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white fw-bold">Resumen General por Mes</div>
                 <div class="card-body">
-                    <div id="chart" style="height: 400px;"></div>
+                    <canvas id="chart3" style="height: 400px;"></canvas>
                 </div>
             </div>
         </div>
@@ -59,46 +60,352 @@
     <div class="row mb-5">
         <div class="col-md-6 mb-4">
             <div class="card shadow-sm">
+                <div class="card-header bg-success text-white fw-bold">Ganancias Mensuales</div>
                 <div class="card-body">
-                    <div id="chart2" style="height: 350px;"></div>
+                    <canvas id="chart2" style="height: 350px;"></canvas>
                 </div>
             </div>
         </div>
-
         <div class="col-md-6 mb-4">
             <div class="card shadow-sm">
+                <div class="card-header bg-info text-white fw-bold">Edades de Pacientes</div>
                 <div class="card-body">
-                    <div id="chart4" style="height: 350px;"></div>
+                    <canvas id="chart4" style="height: 350px;"></canvas>
                 </div>
             </div>
         </div>
     </div>
+
     <div class="row mb-5">
-        <div class="row gx-3 mb-4">
-            <!-- Gráfico 1: Consultas Recientes -->
-            <div class="col-lg-6 col-md-12 mb-3">
+        <div class="col-lg-6 col-md-12 mb-3">
             <div class="card h-100 shadow-sm">
+                <div class="card-header bg-warning text-white fw-bold">Consultas por Mes</div>
                 <div class="card-body">
-                <div id="chart3" style="width: 100%; height: 350px;"></div>
+                    <canvas id="chart" style="width: 100%; height: 350px;"></canvas>
                 </div>
-            </div>
-            </div>
-
-            <!-- Gráfico 2: Top 5 Pacientes con más Consultas -->
-            <div class="col-lg-6 col-md-12 mb-3">
-            <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                <div id="chart5" style="width: 100%; height: 350px;"></div>
-                </div>
-            </div>
             </div>
         </div>
-
+        <div class="col-lg-6 col-md-12 mb-3">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-danger text-white fw-bold">Top 5 Pacientes con más Consultas</div>
+                <div class="card-body">
+                    <canvas id="chart5" style="width: 100%; height: 350px;"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
-
 </div>
 
-<!-- Script para ECharts -->
-<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+<!-- Script para Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Datos de Django (dejas igual)
+window.meses = {{ meses|safe }};
+window.conteoconsultas = {{ conteoconsultas|safe }};
+window.consultatotal = {{ consultatotal|safe }};
+window.consultatotal_home = {{ consultatotal_home|safe }};
+window.conteoconsultas_home = {{ conteoconsultas_home|safe }};
+window.conteopacientes = {{ conteopacientes|safe }};
+window.rango_edad = {{ rango_edad|safe }};
+window.nombres_top = {{ nombres_top|safe }};
+window.cantidades_top = {{ cantidades_top|safe }};
+
+// Función para detectar si estamos en modo oscuro
+function getChartColors() {
+    const dark = document.body.classList.contains('dark-mode') || document.documentElement.classList.contains('dark-mode');
+    return {
+        text: dark ? '#ffffff' : '#333333',
+        grid: dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+        tooltipBg: dark ? '#2d2d2d' : '#ffffff',
+        tooltipText: dark ? '#ffffff' : '#000000'
+    };
+}
+
+// Crear gráficos con modo oscuro
+const colors = getChartColors();
+
+// 1. Consultas por Mes
+const chart1 = new Chart(document.getElementById('chart'), {
+    type: 'bar',
+    data: {
+        labels: window.meses,
+        datasets: [{
+            label: 'Consultas',
+            data: window.conteoconsultas,
+            backgroundColor: 'rgba(84, 112, 198, 0.6)',
+            borderColor: 'rgba(84, 112, 198, 1)',
+            borderWidth: 1,
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Consultas por Mes',
+                color: colors.text,
+                font: { size: 16, weight: 'bold' }
+            },
+            legend: {
+                labels: { color: colors.text }
+            },
+            tooltip: {
+                backgroundColor: colors.tooltipBg,
+                titleColor: colors.tooltipText,
+                bodyColor: colors.tooltipText,
+                callbacks: {
+                    label: function(ctx) {
+                        return 'Consultas: ' + ctx.parsed.y;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { color: colors.text },
+                grid: { color: colors.grid }
+            },
+            x: {
+                ticks: { color: colors.text },
+                grid: { display: false }
+            }
+        }
+    }
+});
+
+// 2. Ganancias Mensuales
+const chart2 = new Chart(document.getElementById('chart2'), {
+    type: 'line',
+    data: {
+        labels: window.meses,
+        datasets: [{
+            label: 'Ganancias ($)',
+            data: window.consultatotal,
+            borderColor: 'rgba(115, 192, 222, 1)',
+            backgroundColor: 'rgba(115, 192, 222, 0.2)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: 'rgba(115, 192, 222, 1)',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Ganancias Mensuales',
+                color: colors.text,
+                font: { size: 16, weight: 'bold' }
+            },
+            legend: {
+                labels: { color: colors.text }
+            },
+            tooltip: {
+                backgroundColor: colors.tooltipBg,
+                titleColor: colors.tooltipText,
+                bodyColor: colors.tooltipText,
+                callbacks: {
+                    label: function(ctx) {
+                        return 'Ganancias: $' + ctx.parsed.y.toLocaleString();
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    color: colors.text,
+                    callback: value => '$' + value.toLocaleString()
+                },
+                grid: { color: colors.grid }
+            },
+            x: {
+                ticks: { color: colors.text },
+                grid: { display: false }
+            }
+        }
+    }
+});
+
+// 3. Gráfico Combinado
+const chart3 = new Chart(document.getElementById('chart3'), {
+    type: 'bar',
+    data: {
+        labels: window.meses,
+        datasets: [
+            {
+                label: 'Ganancias ($)',
+                data: window.consultatotal_home,
+                backgroundColor: 'rgba(84, 112, 198, 0.7)',
+                borderColor: 'rgba(84, 112, 198, 1)',
+                borderWidth: 1,
+                yAxisID: 'y'
+            },
+            {
+                label: 'Consultas',
+                data: window.conteoconsultas_home,
+                backgroundColor: 'rgba(145, 204, 117, 0.7)',
+                borderColor: 'rgba(145, 204, 117, 1)',
+                borderWidth: 1,
+                yAxisID: 'y1'
+            },
+            {
+                label: 'Pacientes',
+                data: window.conteopacientes,
+                type: 'line',
+                borderColor: 'rgba(238, 102, 102, 1)',
+                backgroundColor: 'rgba(238, 102, 102, 0.2)',
+                borderWidth: 3,
+                fill: false,
+                tension: 0.4,
+                yAxisID: 'y2'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Resumen General por Mes',
+                color: colors.text,
+                font: { size: 16, weight: 'bold' }
+            },
+            legend: {
+                labels: { color: colors.text }
+            }
+        },
+        scales: {
+            y: {
+                type: 'linear',
+                position: 'left',
+                title: { display: true, text: 'Ganancias ($)', color: colors.text },
+                ticks: {
+                    color: colors.text,
+                    callback: value => '$' + value.toLocaleString()
+                },
+                grid: { color: colors.grid }
+            },
+            y1: {
+                type: 'linear',
+                position: 'right',
+                title: { display: true, text: 'Consultas', color: colors.text },
+                ticks: { color: colors.text },
+                grid: { drawOnChartArea: false }
+            },
+            y2: {
+                type: 'linear',
+                display: false,
+                position: 'right'
+            },
+            x: {
+                ticks: { color: colors.text },
+                grid: { display: false }
+            }
+        }
+    }
+});
+
+// 4. Edades - Pie chart
+const chart4 = new Chart(document.getElementById('chart4'), {
+    type: 'pie',
+    data: {
+        labels: Object.keys(window.rango_edad),
+        datasets: [{
+            data: Object.values(window.rango_edad),
+            backgroundColor: ['#5470C6', '#91CC75', '#EE6666', '#FAC858', '#73C0DE', '#3BA272'],
+            borderColor: '#fff',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Distribución por Edades',
+                color: colors.text,
+                font: { size: 16, weight: 'bold' }
+            },
+            legend: {
+                position: 'bottom',
+                labels: { color: colors.text }
+            },
+            tooltip: {
+                backgroundColor: colors.tooltipBg,
+                titleColor: colors.tooltipText,
+                bodyColor: colors.tooltipText,
+                callbacks: {
+                    label: function(ctx) {
+                        const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                        const perc = ((ctx.parsed / total) * 100).toFixed(1);
+                        return `${ctx.label}: ${ctx.parsed} (${perc}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// 5. Top 5 Pacientes
+const chart5 = new Chart(document.getElementById('chart5'), {
+    type: 'bar',
+    data: {
+        labels: window.nombres_top,
+        datasets: [{
+            label: 'Consultas',
+            data: window.cantidades_top,
+            backgroundColor: 'rgba(66, 165, 245, 0.7)',
+            borderColor: 'rgba(30, 136, 229, 1)',
+            borderWidth: 1,
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: {
+                display: true,
+                text: 'Top 5 Pacientes con Más Consultas',
+                color: colors.text,
+                font: { size: 16, weight: 'bold' }
+            },
+            legend: {
+                display: false
+            },
+            tooltip: {
+                backgroundColor: colors.tooltipBg,
+                titleColor: colors.tooltipText,
+                bodyColor: colors.tooltipText
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { color: colors.text },
+                title: { display: true, text: 'Número de Consultas', color: colors.text },
+                grid: { color: colors.grid }
+            },
+            x: {
+                ticks: { color: colors.text },
+                grid: { display: false }
+            }
+        }
+    }
+});
+</script>
 
 {% endblock content %}

@@ -1,0 +1,231 @@
+{% extends 'index.html' %}
+
+{% block title %} | Doctores {% endblock title %}
+
+{% block content %}
+{% load static %}
+
+<div class="container-fluid py-5">
+  <div class="text-center mb-3">
+    <h2 class="fw-bold mb-0">Doctores</h2>
+  </div>
+
+  <!-- Controles y Búsqueda -->
+  <div class="row g-3 align-items-center justify-content-between mb-3">
+    
+    <!-- Botones -->
+    <div class="col-12 col-md-auto d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
+      <a class="btn btn-primary" href="/agregardoctor/">
+        <i class="bi bi-plus-circle"></i> Doctor
+      </a>
+      <a class="btn btn-secondary" href="/doctores/">
+        <i class="bi bi-arrow-clockwise"></i> Restablecer
+      </a>
+    </div>
+
+    <!-- Formulario de búsqueda -->
+    <div class="col-12 col-md">
+      <form method="get" class="row g-2 justify-content-center justify-content-md-end">
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <select class="form-select form-select-sm" name="filtro">
+            <option value="nombre" {% if filtro == "nombre" %}selected{% endif %}>Nombre</option>
+            <option value="usuario" {% if filtro == "usuario" %}selected{% endif %}>Usuario</option>
+          </select>
+        </div>
+
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+          <input required type="text" class="form-control form-control-sm" name="buscar" placeholder="Buscar..." value="{{ buscar }}">
+        </div>
+
+        <div class="col-12 col-sm-4 col-md-auto">
+          <button type="submit" class="btn btn-success btn-sm w-100 d-flex align-items-center justify-content-center">
+            <i class="bi bi-search fs-5 me-2"></i> <span>Buscar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+<!-- Cards en móvil -->
+<div class="d-md-none">
+  {% for doctor in entity %}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title fw-bold">{{ doctor.nombre }}</h5>
+      <p class="card-text mb-2"><strong>Usuario:</strong> 
+        {% if doctor.usuario %}
+          {{ doctor.usuario.username }}
+        {% else %}
+          Sin usuario asignado
+        {% endif %}
+      </p>
+      <button class="btn btn-sm btn-info text-white"
+              data-bs-toggle="modal"
+              data-bs-target="#modalDoctor"
+              data-id="{{ doctor.iddoctor }}"
+              data-nombre="{{ doctor.nombre }}"
+              data-user="{% if doctor.usuario %}{{ doctor.usuario.username }}{% endif %}">
+        Detalles
+      </button>
+    </div>
+  </div>
+  {% empty %}
+  <div class="text-center">No hay doctores registrados.</div>
+  {% endfor %}
+</div>
+
+<!-- Tabla en escritorio -->
+<div class="table-responsive d-none d-md-block">
+  <table class="table table-bordered table-hover align-middle text-center custom-table-compact">
+    <thead class="table-dark">
+      <tr>
+        <th class="py-2">ID</th>
+        <th class="py-2">Nombre</th>
+        <th class="py-2">Usuario</th>
+        <th class="py-2">Especialidad</th>
+        <th class="py-2">Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doctor in entity %}
+      <tr class="table-row-compact">
+        <td class="py-2">{{ doctor.iddoctor }}</td>
+        <td class="py-2">{{ doctor.nombre }}</td>
+        <td class="py-2">
+          {% if doctor.usuario %}
+            {{ doctor.usuario.username }}
+          {% else %}
+            Sin usuario
+          {% endif %}
+        </td>
+        <td class="py-2">
+          {% if doctor.usuario %}
+            {% with grupo=doctor.usuario.groups.first %}
+              {% if grupo %}
+                {{ grupo.name }}
+              {% else %}
+                Sin grupo
+              {% endif %}
+            {% endwith %}
+          {% else %}
+            Sin usuario
+          {% endif %}
+        </td>
+        <td class="py-2">
+          <button class="btn btn-sm btn-info text-white px-3 py-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modalDoctor"
+                  data-id="{{ doctor.iddoctor }}"
+                  data-nombre="{{ doctor.nombre }}"
+                  data-user="{% if doctor.usuario %}{{ doctor.usuario.username }}{% endif %}">
+            <i class="fas fa-eye me-1"></i>Detalles
+          </button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="py-3 text-muted">
+          <i class="fas fa-user-md me-2"></i>No hay doctores registrados.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+{% include "paginacion.html" %}
+</div>
+
+<!-- Modal Detalles Doctor -->
+<div class="modal fade" id="modalDoctor" tabindex="-1" aria-labelledby="modalDoctorLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content shadow">
+
+      <!-- Header -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalDoctorLabel">
+          <i class="bi bi-person-badge-fill me-2"></i> Información del Doctor
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <div class="row gy-3">
+          <div class="col-12 d-flex align-items-start">
+            <i class="bi bi-person-fill fs-4 text-primary me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Nombre</h6>
+              <p class="text-muted mb-0" id="doctorNombre"></p>
+            </div>
+          </div>
+          <div class="col-12 d-flex align-items-start">
+            <i class="bi bi-person-circle fs-4 text-info me-3 mt-1"></i>
+            <div>
+              <h6 class="mb-0">Usuario</h6>
+              <p class="text-muted mb-0" id="doctorUsuario"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+        <div class="d-flex flex-wrap gap-2">
+          <a id="btnEditarDoctor" class="btn btn-outline-primary">
+            <i class="bi bi-pencil-square me-1"></i> Editar
+          </a>
+          <button class="btn btn-outline-danger"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modalConfirmarEliminarDoctor"
+                  data-bs-dismiss="modal">
+            <i class="bi bi-trash"></i> Eliminar
+          </button>
+        </div>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="modalConfirmarEliminarDoctor" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">¿Eliminar Doctor?</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de eliminar este Doctor?</p>
+      </div>
+      <div class="modal-footer">
+        <form id="formEliminarDoctor" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm">Sí, eliminar</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if messages %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    {% for message in messages %}
+      darkModeSwal({
+        icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}",
+        title: "{{ message|escapejs }}",
+        timer: 3000
+      });
+    {% endfor %}
+  });
+</script>
+{% endif %}
+{% endblock content %}

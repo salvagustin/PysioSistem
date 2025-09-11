@@ -17,27 +17,31 @@
     </div>
  
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm rounded-4">
-                <div class="card-body p-4">
-                    <form method="post" enctype="multipart/form-data" novalidate>
-                        {% csrf_token %}
-                        {{ form|crispy }}
-
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{% url 'ListaPacientes' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-x-circle"></i> Cancelar
-                            </a>
+    <div class="col-md-6">
+        <div class="card shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'ListaPacientes' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="btn_consulta" class="btn btn-outline-info">
+                                <i class="bi bi-person-lines-fill"></i> Guardar y Consulta
+                            </button>
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-save"></i>
-                                {% if PacienteForm.instance.pk %} Actualizar {% else %} Guardar {% endif %}
+                                {% if form.instance.pk %} Actualizar {% else %} Guardar {% endif %}
                             </button>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 </div>
 {% endblock %}
 

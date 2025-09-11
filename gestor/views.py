@@ -3,19 +3,23 @@ from django.http import HttpResponse
 from django.contrib import messages
 from gestor.models import *
 from gestor.forms import *
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import ListView
 from django.core.paginator import Paginator
 from django.http import Http404, JsonResponse
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required,permission_required
 from django.contrib.auth import logout
-from django.db.models import Sum,Count
-from django.db.models.functions import ExtractMonth
+from django.db.models import Sum,Count, IntegerField
+from django.db.models.functions import ExtractMonth, Cast
 from django.db.models.expressions import RawSQL
 from django.views.generic import View
 from datetime import timedelta, date
 from urllib.parse import urlencode
 from .utils import render_to_pdf
+from django.utils import timezone
 import datetime
+import json
 from datetime import datetime, timedelta, date
 from decimal import Decimal, InvalidOperation
 
@@ -26,6 +30,9 @@ horaactual = horayfecha.hour
 semanaactual = horayfecha.isocalendar().week
 anoactual = horayfecha.isocalendar().year
 mesactualnumero = horayfecha.strftime("%m").capitalize()
+
+grupos_permitidos = ['administrador', 'doctor', 'nutricionista', 'fisioterapeuta']
+
 
 
 # FUNCION PARA OBTENER EL PRIMER DIA DE LA UNA SEMANA INGRESADA
@@ -73,56 +80,73 @@ def nombre_mes(mesactualnumero):
 #######################################################################
 # FUNCION PARA OBTENER LA INFORMACION DEL INDEX
 
-def infohome():
-    hoy = horayfecha.date()
-    pacientes = Paciente.objects.all()
-    citas = Cita.objects.filter(fechacita=hoy)
-    consultasdiarias = Consulta.objects.filter(fechaconsulta=hoy).count()
-    devengadodiario = Consulta.objects.filter(fechaconsulta=hoy).aggregate(Sum('precioconsulta')).get('precioconsulta__sum')
+def infohome(request):
+    hoy = date.today()
+    user = request.user
 
-    if devengadodiario is None:
-        devengadodiario = 0
+    citas = Cita.objects.none()
+    consultas = Consulta.objects.none()
 
-    # Tablas de horarios
+    # Verificamos a qué grupo pertenece el usuario
+    grupos = user.groups.values_list('name', flat=True)
+
+    if 'administrador' in grupos:
+        # Admin ve todo
+        citas = Cita.objects.filter(fechacita=hoy)
+        consultas = Consulta.objects.filter(fechaconsulta=hoy)
+
+    elif 'doctor' in grupos or 'fisioterapeuta' in grupos or 'nutricionista' in grupos:
+        try:
+            doctor = Doctor.objects.get(usuario=user)
+        except Doctor.DoesNotExist:
+            doctor = None
+
+        if doctor:
+            citas = Cita.objects.filter(fechacita=hoy, doctor=doctor)
+            consultas = Consulta.objects.filter(fechaconsulta=hoy, doctor=doctor)
+
+    consultasdiarias = consultas.count()
+    devengadodiario = consultas.aggregate(Sum('precioconsulta')).get('precioconsulta__sum') or 0
+
+    pacientes = Paciente.objects.all()  # Pacientes visibles para todos
+
+    # Tabla de horarios
     horario = {
-        'matutino': {
-            '8': '',
-            '9': '',
-            '10': '',
-            '11': ''
-        },
-        'vespertino': {
-            '13': '',
-            '14': '',
-            '15': '',
-            '16': '',
-            '17': ''
-        }
+        'matutino': {8: '', 9: '', 10: '', 11: ''},
+        'vespertino': {13: '', 14: '', 15: '', 16: '', 17: ''}
     }
 
-    # Llenamos el horario con los pacientes correspondientes
     for cita in citas:
-        hora = cita.horacita  # CharField
+        hora = cita.horacita
         if hora in horario['matutino']:
             horario['matutino'][hora] = cita.paciente.nombre
         elif hora in horario['vespertino']:
             horario['vespertino'][hora] = cita.paciente.nombre
 
-    data = {
+    return {
         'proximacita': citas,
         'citashoy': citas.count(),
         'consultashoy': consultasdiarias,
         'devengadohoy': devengadodiario,
         'pacientes': pacientes,
         'horario': horario,
-        'mensaje': 0  # Opcional para alertas
+        'mensaje': 0
     }
-
-    return data
 
 @login_required
 def inicio(request):
-    data = infohome()
+    user = request.user
+
+    # Si es cliente, redirigir a su home
+    if user.groups.filter(name='cliente').exists():
+        return render(request, 'clientes/home.html')
+
+    elif user.groups.filter(name='administrador').exists():
+       
+       return render(request, 'administrador.html')
+
+    # Para otros grupos (doctor, admin, fisio, nutri) cargamos el index con datos personalizados
+    data = infohome(request)
     return render(request, 'index.html', data)
 
 @login_required
@@ -130,332 +154,76 @@ def salir(request):
     logout(request)
     return redirect('login.html')
 
-######### FUNCION PARA CREAR EL GRAFICO DE CONTEO DE CONSULTAS
-@login_required
-def get_chart(request):
-    #FOR QUE CONSULTA EL TOTAL DE CONSULTAS POR MES
-    conteoconsultas = []
-    for i in range(1,13):
-        consulta = Consulta.objects.filter(fechaconsulta__month=i).count()
-        conteoconsultas.append(consulta)
-   
-    colors = ['#5470C6']
-
-    chart = {
-        'title': {
-            'text': 'Consultas por Mes',
-            'left': 'center',
-            'textStyle': {
-                'fontSize': 18,
-                'fontWeight': 'bold'
-            }
-        },
-        'color': colors,
-        'tooltip': {
-            'trigger': 'axis',
-            'axisPointer': {
-                'type': 'shadow'  # mejor visual con barras
-            }
-        },
-        'toolbox': {
-            'feature': {
-                'saveAsImage': {'show': True},
-                'dataView': {'show': True, 'readOnly': False},
-                'restore': {'show': True}
-            },
-            'right': 20
-        },
-        'legend': {
-            'data': ['Consultas'],
-            'top': '10%'
-        },
-        'grid': {
-            'left': '3%',
-            'right': '4%',
-            'bottom': '5%',
-            'containLabel': True
-        },
-        'xAxis': [
-            {
-                'type': "category",
-                'data': ["En", "Feb", "Mar", "Ab", "May", "Jun", "Jul", "Ago", "Sept", "Oct", "Nov", "Dec"],
-                'axisTick': {'alignWithLabel': True},
-                'axisLine': {'lineStyle': {'color': '#aaa'}}
-            }
-        ],
-        'yAxis': [
-            {
-                'type': "value",
-                'axisLine': {'lineStyle': {'color': '#aaa'}},
-                'splitLine': {'lineStyle': {'type': 'dashed'}}
-            }
-        ],
-        'series': [
-            {
-                'name': 'Consultas',
-                'type': "bar",
-                'barWidth': '60%',
-                'data': conteoconsultas,
-                'itemStyle': {
-                    'borderRadius': [5, 5, 0, 0],
-                    'color': {
-                        'type': 'linear',
-                        'x': 0,
-                        'y': 0,
-                        'x2': 0,
-                        'y2': 1,
-                        'colorStops': [
-                            {'offset': 0, 'color': '#5470C6'},
-                            {'offset': 1, 'color': '#91CC75'}
-                        ]
-                    }
-                },
-                'emphasis': {
-                    'itemStyle': {
-                        'shadowBlur': 10,
-                        'shadowOffsetX': 0,
-                        'shadowColor': 'rgba(0, 0, 0, 0.5)'
-                    }
-                }
-            }
-        ]
-    }
- 
-    return JsonResponse(chart)
-
-
-######### FUNCION PARA CREAR EL GRAFICO DE SUMAR DE GANANCIAS POR MES
-@login_required
-def get_chart2(request):
-   
-    #FOR QUE CONSULTA EL TOTAL DE DEVENGADO POR MES
-    consultatotal=[]
-    for i in range(1,13):
-        sumadevengado = Consulta.objects.filter(fechaconsulta__month =i).aggregate(Sum('precioconsulta')).get('precioconsulta__sum')
-        if sumadevengado == None:
-            sumadevengado=0 
-        consultatotal.append(sumadevengado)
-    colors = ['#73C0DE']  # azul suave para líneas
-
-    chart2 = {
-        'title': {
-            'text': 'Ganancias Mensuales',
-            'left': 'center',
-            'textStyle': {
-                'fontSize': 18,
-                'fontWeight': 'bold'
-            }
-        },
-        'color': colors,
-        'tooltip': {
-            'trigger': 'axis',
-            'axisPointer': {
-                'type': 'line',
-                'lineStyle': {
-                    'color': '#aaa',
-                    'width': 1,
-                    'type': 'dashed'
-                }
-            }
-        },
-        'toolbox': {
-            'feature': {
-                'saveAsImage': {'show': True},
-                'dataView': {'show': True, 'readOnly': False},
-                'restore': {'show': True}
-            },
-            'right': 20
-        },
-        'legend': {
-            'data': ['Ganancias'],
-            'top': '10%'
-        },
-        'grid': {
-            'left': '3%',
-            'right': '4%',
-            'bottom': '5%',
-            'containLabel': True
-        },
-        'xAxis': [
-            {
-                'type': "category",
-                'data': ["En", "Feb", "Mar", "Ab", "May", "Jun", "Jul", "Ago", "Sept", "Oct", "Nov", "Dec"],
-                'axisLine': {'lineStyle': {'color': '#aaa'}}
-            }
-        ],
-        'yAxis': [
-            {
-                'type': "value",
-                'axisLine': {'lineStyle': {'color': '#aaa'}},
-                'splitLine': {'lineStyle': {'type': 'dashed'}},
-                'axisLabel': {'formatter': '${value}'}
-            }
-        ],
-        'series': [
-            {
-                'name': 'Ganancias',
-                'type': "line",
-                'data': consultatotal,
-                'smooth': True,
-                'symbol': 'circle',
-                'symbolSize': 8,
-                'lineStyle': {
-                    'width': 3
-                },
-                'areaStyle': {
-                    'color': {
-                        'type': 'linear',
-                        'x': 0,
-                        'y': 0,
-                        'x2': 0,
-                        'y2': 1,
-                        'colorStops': [
-                            {'offset': 0, 'color': 'rgba(115, 192, 222, 0.5)'},
-                            {'offset': 1, 'color': 'rgba(115, 192, 222, 0)'}
-                        ]
-                    }
-                },
-                'emphasis': {
-                    'focus': 'series',
-                    'itemStyle': {
-                        'borderWidth': 2,
-                        'borderColor': '#3FB1E3',
-                        'shadowBlur': 8,
-                        'shadowColor': 'rgba(0, 0, 0, 0.3)'
-                    }
-                }
-            }
-        ]
-    }
-
-    return JsonResponse(chart2)
-
-
-######### FUNCION PARA CREAR EL GRAFICO DEL HOME
-@login_required
-def get_chart3(request):
-    colors = ['#5470C6', '#91CC75', '#EE6666']
-    
-    # Consultas: ganancias y conteo por mes
-    consulta_por_mes = (Consulta.objects.annotate(mes=ExtractMonth('fechaconsulta')).values('mes').annotate(
-                        total_ganancias=Sum('precioconsulta'),total_consultas=Count('idconsulta')))
-
-    # Pacientes: conteo por mes
-    paciente_por_mes = (Paciente.objects.annotate(mes=ExtractMonth('fechacreacion')).values('mes')
-                        .annotate(total_pacientes=Count('idpaciente')))
-
-    consultatotal = [0] * 12
-    conteoconsultas = [0] * 12
-    conteopacientes = [0] * 12
-
-    for c in consulta_por_mes:
-        index = c['mes'] - 1
-        consultatotal[index] = float(c['total_ganancias'] or 0)
-        conteoconsultas[index] = int(c['total_consultas'])
-
-    for p in paciente_por_mes:
-        index = p['mes'] - 1
-        conteopacientes[index] = int(p['total_pacientes'])
-    
-    chart3 = {
-    "color": colors,
-    "tooltip": {
-        "trigger": "axis",
-        "axisPointer": {
-            "type": "cross"
-        }
-    },
-    "grid": {
-        "right": "20%"
-    },
-    "toolbox": {
-        "feature": {
-            "dataView": { "show": True, "readOnly": False },
-            "restore": { "show": True },
-            "saveAsImage": { "show": True }
-        }
-    },
-    "legend": {
-        "data": ["Ganancias", "Consultas", "Pacientes"]
-    },
-    "xAxis": [
-        {
-            "type": "category",
-            "axisTick": { "alignWithLabel": True },
-            "data": ["En", "Feb", "Mar", "Ab", "May", "Jun", "Jul", "Ago", "Sept", "Oct", "Nov", "Dic"]
-        }
-    ],
-    "yAxis": [
-        {
-            "type": "value",
-            "name": "Ganancias",
-            "position": "right",
-            "alignTicks": True,
-            "axisLine": {
-                "show": True,
-                "lineStyle": { "color": colors[0] }
-            },
-            "axisLabel": { "formatter": "{value} $" }
-        },
-        {
-            "type": "value",
-            "name": "Consultas",
-            "position": "right",
-            "offset": 80,
-            "alignTicks": True,
-            "axisLine": {
-                "show": True,
-                "lineStyle": { "color": colors[1] }
-            },
-            "axisLabel": { "formatter": "{value}" }
-        },
-        {
-            "type": "value",
-            "name": "Pacientes",
-            "position": "left",
-            "alignTicks": True,
-            "axisLine": {
-                "show": True,
-                "lineStyle": { "color": colors[2] }
-            },
-            "axisLabel": { "formatter": "{value}" }
-        }
-    ],
-    "series": [
-        {
-            "name": "Ganancias",
-            "type": "bar",
-            "data": consultatotal
-        },
-        {
-            "name": "Consultas",
-            "type": "bar",
-            "yAxisIndex": 1,
-            "data": conteoconsultas
-        },
-        {
-            "name": "Pacientes",
-            "type": "line",
-            "yAxisIndex": 2,
-            "data": conteopacientes
-        }
-    ]
-}
-
-    return JsonResponse(chart3)
-
 ####### FUNCION PARA CALCULAR LA EDAD DE LOS PACIENTES #####
 def calcular_edad(fecha_nacimiento):
     hoy = date.today()
     return hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
 
 
-######### FUNCION PARA CREAR EL GRAFICO COMBINADO DE LAS ESTADISTICAS
+#################### ESTADISTICAS ###################################
 @login_required
-def get_chart4(request):
-
+def estadisticas(request):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+    hoy = date.today()
+    year_actual = hoy.year
+    mes_actual = hoy.month
+    
+    # Datos para las tarjetas resumen (mantén tu lógica existente)
+    consultasmes = Consulta.objects.filter(fechaconsulta__month=mes_actual, fechaconsulta__year=year_actual).count()
+    citasmes = Cita.objects.filter(fechacita__month=mes_actual, fechacita__year=year_actual).count()
+    pacientesmesactual = Paciente.objects.filter(fechacreacion__month=mes_actual, fechacreacion__year=year_actual).count()
+    devengadomes = Consulta.objects.filter(fechaconsulta__month=mes_actual, fechaconsulta__year=year_actual).aggregate(Sum('precioconsulta')).get('precioconsulta__sum') or 0
+    
+    consultasanio = Consulta.objects.filter(fechaconsulta__year=year_actual).count()
+    citasanio = Cita.objects.filter(fechacita__year=year_actual).count()
+    pacientesanio = Paciente.objects.filter(fechacreacion__year=year_actual).count()
+    devengadoanio = Consulta.objects.filter(fechaconsulta__year=year_actual).aggregate(Sum('precioconsulta')).get('precioconsulta__sum') or 0
+    
+    totalconsultas = Consulta.objects.count()
+    totalcitas = Cita.objects.count()
+    totalpacientes = Paciente.objects.count()
+    totaldevengado = Consulta.objects.aggregate(Sum('precioconsulta')).get('precioconsulta__sum') or 0
+    
+    # DATOS PARA GRÁFICOS
+    
+    # 1. Conteo de consultas por mes
+    conteoconsultas = []
+    for i in range(1, 13):
+        consulta = Consulta.objects.filter(fechaconsulta__month=i, fechaconsulta__year=year_actual).count()
+        conteoconsultas.append(consulta)
+    
+    # 2. Ganancias por mes
+    consultatotal = []
+    for i in range(1, 13):
+        sumadevengado = Consulta.objects.filter(fechaconsulta__month=i, fechaconsulta__year=year_actual).aggregate(Sum('precioconsulta')).get('precioconsulta__sum')
+        if sumadevengado == None:
+            sumadevengado = 0 
+        consultatotal.append(float(sumadevengado))
+    
+    # 3. Datos para gráfico combinado (home)
+    consulta_por_mes = (Consulta.objects.filter(fechaconsulta__year=year_actual).annotate(mes=ExtractMonth('fechaconsulta')).values('mes').annotate(
+                        total_ganancias=Sum('precioconsulta'), total_consultas=Count('idconsulta')))
+    
+    paciente_por_mes = (Paciente.objects.filter(fechacreacion__year=year_actual).annotate(mes=ExtractMonth('fechacreacion')).values('mes')
+                        .annotate(total_pacientes=Count('idpaciente')))
+    
+    consultatotal_home = [0] * 12
+    conteoconsultas_home = [0] * 12
+    conteopacientes = [0] * 12
+    
+    for c in consulta_por_mes:
+        index = c['mes'] - 1
+        consultatotal_home[index] = float(c['total_ganancias'] or 0)
+        conteoconsultas_home[index] = int(c['total_consultas'])
+    
+    for p in paciente_por_mes:
+        index = p['mes'] - 1
+        conteopacientes[index] = int(p['total_pacientes'])
+    
+    # 4. Rangos de edad de pacientes
     pacientes = Paciente.objects.all()
-    # Inicializar los rangos
     rango_edad = {
         '1-10 años': 0,
         '11-18 años': 0,
@@ -464,11 +232,10 @@ def get_chart4(request):
         '46-60 años': 0,
         'Más de 60 años': 0
     }
-    # Recorrer pacientes y contar por rango
+    
     for paciente in pacientes:
         if paciente.fecha_nacimiento:
             edad = calcular_edad(paciente.fecha_nacimiento)
-
             if 1 <= edad <= 10:
                 rango_edad['1-10 años'] += 1
             elif 11 <= edad <= 18:
@@ -481,179 +248,50 @@ def get_chart4(request):
                 rango_edad['46-60 años'] += 1
             elif edad > 60:
                 rango_edad['Más de 60 años'] += 1
-   
-    # Preparar datos para el pie chart
-    pie_data = [{"name": k, "value": v} for k, v in rango_edad.items()]
-    colors = ['#5470C6', '#91CC75', '#EE6666', '#FAC858', '#73C0DE', '#3BA272']
-
-    chart4 = {
-         'title': {
-            'text': 'Edades de Pacientes',
-            'left': 'center',
-            'textStyle': {
-                'fontSize': 18,
-                'fontWeight': 'bold'
-            }
-        },
-        "color": colors,
-        "tooltip": {
-            "trigger": "item",
-            "formatter": "{a} <br/>{b}: {c} ({d}%)"
-        },
-        "legend": {
-            "orient": "vertical",
-            "left": "left",
-            "data": list(rango_edad.keys())
-        },
-        "series": [
-            {
-                "name": "Pacientes",
-                "type": "pie",
-                "radius": "70%",
-                "center": ["50%", "60%"],
-                "data": pie_data,
-                "emphasis": {
-                    "itemStyle": {
-                        "shadowBlur": 10,
-                        "shadowOffsetX": 0,
-                        "shadowColor": "rgba(0, 0, 0, 0.5)"
-                    }
-                }
-            }
-        ]
-    }
-   
-    return JsonResponse(chart4)
-
-######### FUNCION PARA CREAR EL GRAFICO DE LOS 5 PACIENTES CON MAS CONSULTAS
-@login_required
-def get_chart5(request):
-    # Obtener los 5 pacientes con más consultas
+    
+    # 5. Top 5 pacientes con más consultas
     top_pacientes = (
         Consulta.objects.values('paciente__nombre')
         .annotate(total=Count('paciente__idpaciente'))
         .order_by('-total')[:5]
     )
-
-    nombres = [p['paciente__nombre'] for p in top_pacientes]
-    cantidades = [p['total'] for p in top_pacientes]
-
-    chart5 = {
-        "title": {
-            "text": "Top 5 Pacientes con Más Consultas",
-            "left": "center",
-            "textStyle": {
-                "fontSize": 20,
-                "fontWeight": "bold",
-                "color": "#333"
-            }
-        },
-        "tooltip": {
-            "trigger": "axis",
-            "axisPointer": {
-                "type": "shadow"
-            }
-        },
-        "grid": {
-            "left": "5%",
-            "right": "5%",
-            "bottom": "10%",
-            "containLabel": True
-        },
-        "xAxis": {
-            "type": "category",
-            "data": nombres,
-            "axisLabel": {
-                "interval": 0,
-                "rotate": 15,
-                "fontSize": 12,
-                "color": "#666"
-            },
-            "axisLine": {
-                "lineStyle": {
-                    "color": "#ccc"
-                }
-            }
-        },
-        "yAxis": {
-            "type": "value",
-            "name": "Consultas",
-            "axisLabel": {
-                "color": "#666"
-            }
-        },
-        "series": [{
-            "data": cantidades,
-            "type": "bar",
-            "barWidth": "50%",
-            "itemStyle": {
-                "color": {
-                    "type": "linear",
-                    "x": 0,
-                    "y": 0,
-                    "x2": 0,
-                    "y2": 1,
-                    "colorStops": [
-                        {"offset": 0, "color": "#42a5f5"},
-                        {"offset": 1, "color": "#1e88e5"}
-                    ]
-                },
-                "borderRadius": [5, 5, 0, 0]
-            },
-            "label": {
-                "show": True,
-                "position": "top",
-                "color": "#000",
-                "fontSize": 12
-            }
-        }]
-    }
-
-    return JsonResponse(chart5)
-
-
-#################### ESTADISTICAS ###################################
-@login_required
-def estadisticas(request):
-
-    #OBTENCION DE LAS FECHAS DE LA SEMANA
-    first_day = first_day_of_iso_week(anoactual, semanaactual)
-    lunes = first_day.date()
-    citasmes = Cita.objects.filter(fechacita__month=mesactualnumero).count()
-    consultasmes = Consulta.objects.filter(fechaconsulta__month =mesactualnumero).count()
-    devengadomes = Consulta.objects.filter(fechaconsulta__month =mesactualnumero).aggregate(Sum('precioconsulta')).get('precioconsulta__sum')
     
-    citasanio = Cita.objects.filter(fechacita__year=anoactual).count()
-    consultasanio = Consulta.objects.filter(fechaconsulta__year =anoactual).count()
-    devengadoanio = Consulta.objects.filter(fechaconsulta__year =anoactual).aggregate(Sum('precioconsulta')).get('precioconsulta__sum')
+    nombres_top = [p['paciente__nombre'] for p in top_pacientes]
+    cantidades_top = [p['total'] for p in top_pacientes]
     
-    pacientesmesactual = Paciente.objects.filter(fechacreacion__month=mesactualnumero).count()
+    # Meses para los gráficos
+    meses = ["En", "Feb", "Mar", "Ab", "May", "Jun", "Jul", "Ago", "Sept", "Oct", "Nov", "Dic"]
     
-    pacientesanio = Paciente.objects.filter(fechacreacion__year=anoactual).count()
-    
-    totalpacientes = Paciente.objects.count()
-    totaldevengado = Consulta.objects.all().aggregate(Sum('precioconsulta')).get('precioconsulta__sum')
-    totalcitas = Cita.objects.count()
-    totalconsultas = Consulta.objects.count()
-    mes = nombre_mes(lunes.strftime("%m").capitalize())
-    data = {
-        'year':anoactual,
-        'devengadomes': devengadomes,
+    context = {
+        # Datos de tarjetas resumen
+        'mesactual': hoy.strftime('%B'),
+        'year': year_actual,
         'consultasmes': consultasmes,
-        'mesactual': mes,
         'citasmes': citasmes,
-        'pacientesmesactual':pacientesmesactual,
-        'pacientesanio':pacientesanio,
-        'citasanio':citasanio,
-        'consultasanio':consultasanio,
-        'devengadoanio':devengadoanio,
+        'pacientesmesactual': pacientesmesactual,
+        'devengadomes': devengadomes,
+        'consultasanio': consultasanio,
+        'citasanio': citasanio,
+        'pacientesanio': pacientesanio,
+        'devengadoanio': devengadoanio,
+        'totalconsultas': totalconsultas,
         'totalcitas': totalcitas,
         'totalpacientes': totalpacientes,
         'totaldevengado': totaldevengado,
-        'totalconsultas': totalconsultas
+        
+        # Datos para gráficos
+        'meses': meses,
+        'conteoconsultas': conteoconsultas,
+        'consultatotal': consultatotal,
+        'consultatotal_home': consultatotal_home,
+        'conteoconsultas_home': conteoconsultas_home,
+        'conteopacientes': conteopacientes,
+        'rango_edad': rango_edad,
+        'nombres_top': nombres_top,
+        'cantidades_top': cantidades_top,
     }
-
-    return render(request, 'estadisticas.html', data)
+    
+    return render(request, 'estadisticas.html', context)
 
 
 
@@ -662,31 +300,38 @@ def estadisticas(request):
 #VISTA PARA LISTAR CITAS
 @login_required
 def ListaCitas(request):
-    # Semana y año actuales
+    
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
+    # Intentar encontrar al profesional vinculado a este usuario
+    doctor_actual = Doctor.objects.filter(usuario=request.user).first()
+
     semanaactual = datetime.now().isocalendar()[1]
     anoactual = datetime.now().year
-
     pacientes = Paciente.objects.all().order_by('nombre')
 
-    # Día lunes de la semana actual
     first_day = first_day_of_iso_week(anoactual, semanaactual)
     lunes = first_day.date()
 
-    # Fechas de la semana
     fechalunes = lunes.strftime("%d")
     fechamartes = (lunes + timedelta(days=1)).strftime("%d")
     fechamiercoles = (lunes + timedelta(days=2)).strftime("%d")
     fechajueves = (lunes + timedelta(days=3)).strftime("%d")
     fechaviernes = (lunes + timedelta(days=4)).strftime("%d")
     mes = nombre_mes(lunes.strftime("%m"))
-    
-    # Conteo de citas de la semana
-    conteocitas = Cita.objects.filter(
+
+    # Base query: filtrar por doctor si no es administrador
+    base_query = Cita.objects.filter(
         fechacita__week=semanaactual,
         fechacita__year=anoactual
-    ).count()
+    )
+    if not request.user.groups.filter(name='administrador').exists():
+        base_query = base_query.filter(doctor=doctor_actual)
 
-    # Horas a mostrar
+    conteocitas = base_query.count()
+
     horas = [
         (8, "8:00 - 9:00"),
         (9, "9:00 - 10:00"),
@@ -699,25 +344,25 @@ def ListaCitas(request):
         (17, "5:00 - 6:00"),
     ]
 
-    # Construcción de filas de la tabla
     filas = []
     for hora_valor, hora_texto in horas:
-        fila = [hora_texto]  # Primer columna: la hora
-        for dia_semana in range(2, 7):  # 2=lunes, 6=viernes
-            citas = Cita.objects.filter(
+        fila = [hora_texto]
+        for dia_semana in range(2, 7):  # lunes a viernes
+            citas_dia = base_query.filter(
                 horacita=hora_valor,
-                fechacita__week=semanaactual,
-                fechacita__week_day=dia_semana,
-                fechacita__year=anoactual
+                fechacita__week_day=dia_semana
             )
-            if citas.exists():
-                fila.append(citas.first())  # Puedes adaptar si hay múltiples
+            if citas_dia.exists():
+                fila.append(citas_dia.first())
             else:
-                fila.append(2)  # Código para disponible
+                fila.append(2)  # Disponible
         filas.append(fila)
 
-    # Combinamos horarios y filas en una sola estructura para el template
     horarios_citas = [(fila[0], fila[1:]) for fila in filas]
+
+    citas = Cita.objects.all().order_by('-fechacita', 'horacita')
+    if not request.user.groups.filter(name='administrador').exists():
+        citas = citas.filter(doctor=doctor_actual)
 
     return render(request, 'Citas/citas.html', {
         'fechalunes': fechalunes,
@@ -729,16 +374,22 @@ def ListaCitas(request):
         'mes': mes,
         'semana': semanaactual,
         'horarios_citas': horarios_citas,
-        'pacientes':pacientes,
+        'pacientes': pacientes,
+        'citas': citas,
     })
 
 #FUNCION PARA OBTENER LAS CITAS DE LA SEMANA BUSCADA
 @login_required
 def buscar_semana(request, numano=None,numse=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     ####### SEMANA BUSCADA #########
     # Semana y año actuales
     
-
+     # Intentar encontrar al profesional vinculado a este usuario
+    doctor_actual = Doctor.objects.filter(usuario=request.user).first()
+    
     pacientes = Paciente.objects.all().order_by('nombre')
 
     # Día lunes de la semana actual
@@ -756,7 +407,8 @@ def buscar_semana(request, numano=None,numse=None):
     # Conteo de citas de la semana
     conteocitas = Cita.objects.filter(
         fechacita__week=numse,
-        fechacita__year=numano
+        fechacita__year=numano,
+        doctor=doctor_actual
     ).count()
 
     # Horas a mostrar
@@ -781,7 +433,8 @@ def buscar_semana(request, numano=None,numse=None):
                 horacita=hora_valor,
                 fechacita__week=numse,
                 fechacita__week_day=dia_semana,
-                fechacita__year=numano
+                fechacita__year=numano,
+                doctor=doctor_actual
             )
             if citas.exists():
                 fila.append(citas.first())  # Puedes adaptar si hay múltiples
@@ -808,55 +461,67 @@ def buscar_semana(request, numano=None,numse=None):
 #VISTA PARA AGREGAR CITA
 @login_required
 def crear_cita(request):
+    grupos_permitidos = ['administrador', 'doctor', 'nutricionista', 'fisioterapeuta']
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
     paciente_id = request.GET.get('paciente_id') or request.POST.get('paciente')
     paciente_nombre = request.GET.get('paciente_nombre')
     historial_consultas = []
-
     paciente_obj = None
+
     if paciente_id:
         paciente_obj = get_object_or_404(Paciente, idpaciente=paciente_id)
         historial_consultas = Consulta.objects.filter(paciente=paciente_obj).order_by('-fechaconsulta')
 
+    # Detectamos si es admin y obtenemos el doctor logueado si existe
+    es_admin = request.user.groups.filter(name='administrador').exists()
+    doctor_actual = Doctor.objects.filter(usuario=request.user).first()
+
     if request.method == 'POST':
-        form = CitaForm(request.POST)
+        # Copiamos los datos para modificar si no es admin
+        data_mutable = request.POST.copy()
+        if not es_admin and doctor_actual:
+            data_mutable['doctor'] = doctor_actual.pk
+
+        form = CitaForm(data_mutable, es_admin=es_admin)
+
         if form.is_valid():
-            fecha = form.cleaned_data['fechacita']
-            hora = form.cleaned_data['horacita']
-            cita_existente = Cita.objects.filter(fechacita=fecha, horacita=hora).exists()
-            if cita_existente:
-                messages.error(request, f"No se puede agendar la cita porque ya esta ocupada la hora.")
-                return render(request, 'Citas/form_cita.html', {
-                    'form': form,
-                    'paciente_id': paciente_id,
-                    'paciente_nombre': paciente_nombre,
-                    'historial_consultas': historial_consultas
-                })
+            cita = form.save(commit=False)
+
+            # Forzamos doctor si no es admin
+            if not es_admin and doctor_actual:
+                cita.doctor = doctor_actual
+
+            # Verificar si existe una cita en ese horario con ese doctor
+            if Cita.objects.filter(fechacita=cita.fechacita, horacita=cita.horacita, doctor=cita.doctor).exists():
+                messages.error(request, f"No se puede agendar la cita porque ya está ocupada la hora.")
             else:
-                messages.success(request, f"Cita agendada correctamente para {paciente_nombre} el {fecha} a las {hora}.")
-                form.save()
+                cita.save()
+                messages.success(request, f"Cita agendada correctamente para {paciente_nombre} el {cita.fechacita} a las {cita.horacita}.")
                 return redirect('/citas/')
         else:
-            return render(request, 'Citas/form_cita.html', {
-                'form': form,
-                'paciente_id': paciente_id,
-                'paciente_nombre': paciente_nombre,
-                'historial_consultas': historial_consultas
-            })
+            messages.error(request, "Por favor corrige los errores del formulario.")
     else:
         initial = {}
         if paciente_obj:
             initial['paciente'] = paciente_obj
-        form = CitaForm(initial=initial)
-        return render(request, 'Citas/form_cita.html', {
-            'form': form,
-            'paciente_id': paciente_id,
-            'paciente_nombre': paciente_nombre,
-            'historial_consultas': historial_consultas
-        })
+        form = CitaForm(initial=initial, es_admin=es_admin)
+
+    return render(request, 'Citas/form_cita.html', {
+        'form': form,
+        'paciente_id': paciente_id,
+        'paciente_nombre': paciente_nombre,
+        'historial_consultas': historial_consultas
+    })
 
 #VISTA EDITAR CITA
 @login_required
 def editar_cita(request, pk=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     cita = get_object_or_404(Cita, pk=pk)
     paciente = cita.paciente
     paciente_nombre = paciente.nombre
@@ -897,18 +562,21 @@ def editar_cita(request, pk=None):
 #VISTA ELIMINAR CITAS
 @login_required
 def eliminar_cita(request, pk=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     messages.success(request, f"Cita eliminada correctamente.")
     Cita.objects.filter(pk=pk).delete()
     return redirect('/citas/')
 
-    
-
-
-########################## PACIENTES ################################################
+########################## PACIENTES  ################################################
 
 #VISTA LISTAR PACIENTES
 @login_required
 def ListaPacientes(request):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     filtro = request.GET.get('filtro', 'nombre')
     buscar = request.GET.get('buscar', '')
 
@@ -942,7 +610,10 @@ def ListaPacientes(request):
 
 #VISTA CREAR PACIENTE
 @login_required
-def crear_paciente(request):    
+def crear_paciente(request):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     if request.method == 'GET':
         return render(request, 'Pacientes/form_paciente.html', {'form': PacienteForm()})
     
@@ -950,19 +621,29 @@ def crear_paciente(request):
         form = PacienteForm(request.POST)
         if form.is_valid():
             nuevo_paciente = form.save()
-            # Redireccionar con ID y nombre como parámetros
-            messages.success(request, f"Paciente {nuevo_paciente.nombre} creado correctamente.")
-            query_params = urlencode({
-                'paciente_id': nuevo_paciente.idpaciente,
-                'paciente_nombre': nuevo_paciente.nombre
-            })
-            return redirect(f'/agregarconsulta/?{query_params}')
+            
+            # Verificar qué botón fue presionado
+            if 'btn_consulta' in request.POST:
+                # Si presionó el botón de consulta, redirigir a agregar consulta
+                messages.success(request, f"Paciente {nuevo_paciente.nombre} creado correctamente.")
+                query_params = urlencode({
+                    'paciente_id': nuevo_paciente.idpaciente,
+                    'paciente_nombre': nuevo_paciente.nombre
+                })
+                return redirect(f'/agregarconsulta/?{query_params}')
+            else:
+                # Si presionó guardar o actualizar, redirigir a la lista de pacientes
+                messages.success(request, f"Paciente {nuevo_paciente.nombre} guardado correctamente.")
+                return redirect('ListaPacientes')
         
         return render(request, 'Pacientes/form_paciente.html', {'form': form})
 
-#VISTA EDITAR PACIENTE
+#VISTA EDITAR PACIENTE 
 @login_required
 def editar_paciente(request, pk):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     paciente = get_object_or_404(Paciente, pk=pk)
 
     if request.method == 'POST':
@@ -979,6 +660,9 @@ def editar_paciente(request, pk):
 #VISTA ELIMINAR PACIENTE
 @login_required
 def eliminar_paciente(request, pk=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     paciente = get_object_or_404(Paciente, pk=pk)
 
     tiene_consultas = paciente.consulta_set.exists()
@@ -994,6 +678,9 @@ def eliminar_paciente(request, pk=None):
 
 #VISTA PARA MOSTRAR EL HISTORIAL DE PACIENTES
 def paciente_historial(request,pk=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     conteo = Consulta.objects.filter(paciente__idpaciente=pk).count()
     paciente = Paciente.objects.get(pk=pk)
     consultas = Consulta.objects.filter(paciente__idpaciente=pk).order_by('-fechaconsulta')
@@ -1014,6 +701,9 @@ def paciente_historial(request,pk=None):
 
 #VISTA PARA MOSTRAR EL HISTORIAL DEL PACIENTE DETALLADO
 def paciente_historialid(request,pk=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     consult = Consulta.objects.get(idconsulta=pk)
     #receta = Receta.objects.get(consulta__idconsulta=pk)
     data={
@@ -1026,6 +716,9 @@ def paciente_historialid(request,pk=None):
 #VISTA PARA BUSCAR PACIENTES
 @login_required
 def buscar_paciente(request, name):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     allpacientes = Paciente.objects.all().order_by('nombre')
     pacientes = Paciente.objects.filter(nombre__icontains=name).order_by('nombre')
     if len(pacientes) >= 1:
@@ -1062,44 +755,143 @@ def buscar_paciente(request, name):
 #VISTA PARA BUSCAR PACIENTES EN INDEX
 @login_required
 def buscar_paciente_index(request, name):
-    
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+    name = name.strip()
+    if not name:
+        return redirect('inicio')
+
     pacientes = Paciente.objects.filter(nombre__icontains=name).order_by('nombre')
-    if len(pacientes) >= 1:
-                pagina = request.GET.get("page", 1)
 
-                try:
-                    paginator = Paginator(pacientes, 10)
-                    pacientes = paginator.page(pagina)
-                except:
-                    raise Http404
+    if pacientes.exists():
+        paginator = Paginator(pacientes, 10)
+        page = request.GET.get("page", 1)
 
-                data = {
-                    'entity': pacientes,
-                    'paginator':paginator
-                }
-                
-                return render(request, 'Pacientes/pacientes.html', data)
+        try:
+            pacientes_page = paginator.page(page)
+        except:
+            raise Http404("Página no encontrada")
+
+        return render(request, 'Pacientes/pacientes.html', {
+            'entity': pacientes_page,
+            'paginator': paginator
+        })
     else:
-        mensaje=1
+        messages.error(request, f"No se encontraron pacientes con el nombre: {name}")
         data = infohome()
-        data.update({'mensaje':mensaje})
-       
-    return render(request, 'index.html', data)
+        return render(request, 'index.html', data)
 
 
+########################### DOCTORES ###############################################
+
+# VISTA LISTAR DOCTORES
+@login_required
+def lista_doctores(request):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
+    filtro = request.GET.get('filtro', 'nombre')
+    buscar = request.GET.get('buscar', '')
+
+    doctores = Doctor.objects.all().order_by('nombre')
+
+    if buscar:
+        buscar = buscar.strip().lower()
+        if filtro == 'nombre':
+            doctores = doctores.filter(nombre__icontains=buscar)
+        elif filtro == 'usuario':
+            doctores = doctores.filter(usuario__username__icontains=buscar)
+
+    pagina = request.GET.get("page", 1)
+    try:
+        paginator = Paginator(doctores, 10)
+        doctores_paginados = paginator.page(pagina)
+    except:
+        raise Http404("Página no encontrada")
+
+    return render(request, 'Doctores/doctores.html', {
+        'entity': doctores_paginados,
+        'paginator': paginator,
+        'filtro': filtro,
+        'buscar': buscar
+    })
+
+# VISTA CREAR DOCTOR
+@login_required
+def crear_doctor(request):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
+    if request.method == 'GET':
+        return render(request, 'Doctores/form_doctor.html', {'form': DoctorForm()})
+
+    if request.method == 'POST':
+        form = DoctorForm(request.POST)
+        if form.is_valid():
+            nuevo_doctor = form.save()
+            messages.success(request, f"Doctor {nuevo_doctor.nombre} creado correctamente.")
+            return redirect('lista_doctores')
+        return render(request, 'Doctores/form_doctor.html', {'form': form})
+
+# VISTA EDITAR DOCTOR
+@login_required
+def editar_doctor(request, pk):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
+    doctor = get_object_or_404(Doctor, pk=pk)
+
+    if request.method == 'POST':
+        form = DoctorForm(request.POST, instance=doctor)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Doctor {doctor.nombre} editado correctamente.")
+            return redirect('lista_doctores')
+    else:
+        form = DoctorForm(instance=doctor)
+
+    return render(request, 'Doctores/form_doctor.html', {'form': form})
+
+# VISTA ELIMINAR DOCTOR
+@login_required
+def eliminar_doctor(request, pk):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
+    doctor = get_object_or_404(Doctor, pk=pk)
+    nombre = doctor.nombre
+    doctor.delete()
+    messages.success(request, f"Doctor {nombre} eliminado correctamente.")
+    return redirect('lista_doctores')
 
 ########################### CONSULTAS ###############################################
 
 #VISTA PARA LISTAR CONSULTAS
 @login_required
 def ListaConsultas(request):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
     filtro = request.GET.get('filtro', 'paciente')
     buscar = request.GET.get('buscar', '')
     fecha_inicio = request.GET.get('fecha_inicio', '')
     fecha_fin = request.GET.get('fecha_fin', '')
     pacientes = Paciente.objects.all().order_by('nombre')
 
-    consultas = Consulta.objects.all().order_by('-fechaconsulta')
+    # Si el usuario pertenece al grupo administrador ve todas las consultas
+    if request.user.groups.filter(name='administrador').exists():
+        consultas = Consulta.objects.all().order_by('-fechaconsulta')
+    else:
+        # Buscar al doctor asociado al usuario
+        doctor_actual = Doctor.objects.filter(usuario=request.user).first()
+        consultas = Consulta.objects.filter(doctor=doctor_actual).order_by('-fechaconsulta')
+
     # Filtro por búsqueda
     if buscar:
         buscar = buscar.strip().lower()
@@ -1114,8 +906,8 @@ def ListaConsultas(request):
             try:
                 buscar = buscar.replace(',', '.')
                 valor = Decimal(buscar)
-                # Buscar precios entre valor y valor + 1
-                consultas = consultas.filter(precioconsulta__gte=valor, precioconsulta__lt=valor + Decimal('1.00'))
+                consultas = consultas.filter(precioconsulta__gte=valor,
+                                             precioconsulta__lt=valor + Decimal('1.00'))
             except (InvalidOperation, ValueError):
                 pass
 
@@ -1136,8 +928,8 @@ def ListaConsultas(request):
 
     # Paginación
     pagina = request.GET.get("page", 1)
+    paginator = Paginator(consultas, 10)
     try:
-        paginator = Paginator(consultas, 10)
         consultas_paginadas = paginator.page(pagina)
     except:
         raise Http404("Página no encontrada")
@@ -1149,31 +941,56 @@ def ListaConsultas(request):
         'buscar': buscar,
         'fecha_inicio': fecha_inicio,
         'fecha_fin': fecha_fin,
-        'pacientes':pacientes,
+        'pacientes': pacientes,
     })
 
 #VISTA PARA AGREGAR CONSULTAS DESDE CREAR PACIENTE
 @login_required
 def crear_consulta(request):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
     paciente_id = request.GET.get('paciente_id') or request.POST.get('paciente')
     paciente_nombre = request.GET.get('paciente_nombre')
-
     historial_consultas = []
 
     if paciente_id:
-        historial_consultas = Consulta.objects.filter(paciente_id=paciente_id).order_by('-fechaconsulta')
-        
+        historial_consultas = Consulta.objects.filter(
+            paciente_id=paciente_id
+        ).order_by('-fechaconsulta')
+
+    # Saber si es admin y obtener el doctor logeado si existe
+    es_admin = request.user.groups.filter(name='administrador').exists()
+    doctor_actual = Doctor.objects.filter(usuario=request.user).first()
+
     if request.method == 'POST':
-        form = ConsultaForm(request.POST)
+        form = ConsultaForm(request.POST, es_admin=es_admin)
+
+        # Forzamos doctor si el usuario no es admin antes de validar
+        if not es_admin and doctor_actual:
+            # Hacemos mutable el QueryDict
+            data_mutable = request.POST.copy()
+            data_mutable['doctor'] = doctor_actual.pk
+            form = ConsultaForm(data_mutable, es_admin=es_admin)
+
         if form.is_valid():
+            consulta = form.save(commit=False)
+
+            # Si no es admin, aseguramos que el doctor quede asignado
+            if not es_admin and doctor_actual:
+                consulta.doctor = doctor_actual
+
+            consulta.save()
             messages.success(request, f"Consulta creada correctamente para {paciente_nombre}.")
-            consulta = form.save()
             return redirect('/consultas/')
+        else:
+            messages.error(request, "Por favor corrige los errores del formulario.")
     else:
         initial = {}
         if paciente_id:
             initial['paciente'] = paciente_id
-        form = ConsultaForm(initial=initial)
+        form = ConsultaForm(initial=initial, es_admin=es_admin)
 
     return render(request, 'Consultas/form_consulta.html', {
         'form': form,
@@ -1184,6 +1001,9 @@ def crear_consulta(request):
 #VISTA EDITAR COSULTAS
 @login_required
 def editar_consulta(request, pk=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     consulta = Consulta.objects.get(pk=pk)
     historial_consultas = Consulta.objects.filter(paciente=consulta.paciente).order_by('-fechaconsulta')
     paciente_nombre = request.GET.get('paciente_nombre', consulta.paciente.nombre)
@@ -1221,6 +1041,9 @@ def editar_consulta(request, pk=None):
 #VISTA ELIMINAR CONSULTAS
 @login_required
 def eliminar_consulta(request, pk=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     consulta = get_object_or_404(Consulta, pk=pk)
     consulta.delete()
     messages.success(request, "Consulta eliminada correctamente.")
@@ -1229,8 +1052,15 @@ def eliminar_consulta(request, pk=None):
 #VISTA PARA BUSCAR CONSULTA
 @login_required
 def buscar_consulta(request, name=None):
+    if not request.user.groups.filter(name__in=grupos_permitidos).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     allconsultas = Consulta.objects.all().order_by('-idconsulta')
-    consultas = Consulta.objects.filter(paciente__nombre__icontains=name)
+    
+    # Intentar encontrar al profesional vinculado a este usuario
+    doctor_actual = Doctor.objects.filter(usuario=request.user).first()
+
+    consultas = Consulta.objects.filter(paciente__nombre__icontains=name,doctor=doctor_actual)
     if len(consultas) >= 1:
                 pagina = request.GET.get("page", 1)
 
@@ -1248,7 +1078,7 @@ def buscar_consulta(request, name=None):
             
                 return render(request, 'Consultas/consultas.html', data)
     else:
-        existe = 1
+        mensaje = messages.error(request, "No se encontraron consultas para el paciente buscado.")
         pagina = request.GET.get("page", 1)
 
         try:
@@ -1260,7 +1090,7 @@ def buscar_consulta(request, name=None):
     data = {
         'entity': allconsultas,
         'paginator':paginator,
-        'mensaje': existe,
+        'mensaje': mensaje,
         }    
     return render(request, 'Consultas/consultas.html', data)
 
@@ -1271,6 +1101,9 @@ def buscar_consulta(request, name=None):
 #VISTA PARA LISTAR RECETAS
 @login_required
 def ListaRecetas(request):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     recetas = Receta.objects.all().order_by('-idreceta')
     pagina = request.GET.get("page", 1)
 
@@ -1289,6 +1122,9 @@ def ListaRecetas(request):
 #VISTA PARA AGREGAR CONSULTAS
 @login_required
 def crear_receta(request):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     consulta_id = request.GET.get('consulta_id')
     paciente_nombre = request.GET.get('paciente_nombre')
 
@@ -1310,6 +1146,9 @@ def crear_receta(request):
 #VISTA EDITAR RECETA
 @login_required
 def editar_receta(request, pk=None):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     receta = Receta.objects.get(pk=pk)
 
     if request.method == 'GET':
@@ -1345,12 +1184,18 @@ def editar_receta(request, pk=None):
 #VISTA ELIMINAR RECETA
 @login_required
 def eliminar_receta(request, pk=None):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     Receta.objects.filter(pk=pk).delete()
     return redirect('/recetas/')
 
 #VISTA PARA BUSCAR RECETA
 @login_required
 def buscar_receta(request, name=None):
+    if not request.user.groups.filter(name='administrador').exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
     allrecetas = Receta.objects.all().order_by('fechareceta')
     recetas = Receta.objects.filter(consulta__paciente__nombre__icontains=name)
     if len(recetas) >= 1:
@@ -1388,7 +1233,6 @@ def buscar_receta(request, name=None):
 
 #LISTVIEW PARA EXPORTAR RECETA A PDF
 class imprimirreceta(View):
-
     def get(self, request,pk, *args, **kwargs):
         receta = Receta.objects.get(idreceta = pk)
         data = {
@@ -1397,3 +1241,212 @@ class imprimirreceta(View):
         }
         pdf = render_to_pdf('recetas/imprimirreceta.html', data)
         return HttpResponse(pdf, content_type='application/pdf')
+
+grupos_permitidoss = ['administrador', 'fisioterapeuta']
+#VISTA PARA LISTAR EJERCICIOS
+@login_required
+def ListaEjercicios(request):
+   
+    if not request.user.groups.filter(name__in=grupos_permitidoss).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+    ejercicios = Ejercicio.objects.all().order_by('nombre')
+    pagina = request.GET.get("page", 1)
+
+    try:
+        paginator = Paginator(ejercicios, 10)
+        ejercicios = paginator.page(pagina)
+    except:
+        raise Http404
+
+    data = {
+        'entity': ejercicios,
+        'paginator':paginator
+    }
+    return render(request,  'Ejercicios/ejercicios.html',data )
+
+
+#VISTA PARA AGREGAR EJERCICIO
+@login_required
+def crear_ejercicio(request):
+    if not request.user.groups.filter(name__in=grupos_permitidoss).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+    if request.method == 'POST':
+        ejercicio_form = EjercicioForm(request.POST, request.FILES)
+        imagenes = request.FILES.getlist('imagenes')
+
+        if ejercicio_form.is_valid():
+            ejercicio = ejercicio_form.save()
+            for img in imagenes:
+                ImagenEjercicio.objects.create(ejercicio=ejercicio, imagen=img)
+            messages.success(request, "Ejercicio creado correctamente.")
+            return redirect('ListaEjercicios')
+        else:
+            messages.error(request, "Error al crear el ejercicio. Por favor, revisa los datos ingresados.")
+    else:
+        ejercicio_form = EjercicioForm()
+
+    return render(request, 'ejercicios/form_ejercicio.html', {
+        'form': ejercicio_form,
+    })
+
+# VISTA EDITAR EJERCICIO
+@login_required
+def editar_ejercicio(request, pk):
+    if not request.user.groups.filter(name__in=grupos_permitidoss).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+    ejercicio = get_object_or_404(Ejercicio, pk=pk)
+    imagenes_json = [
+    {"id": img.id, "url": img.imagen.url}
+    for img in ejercicio.imagenes.all()
+    ]
+
+    if request.method == 'POST':
+        ejercicio_form = EjercicioForm(request.POST, request.FILES, instance=ejercicio)
+        nuevas_imagenes = request.FILES.getlist('imagenes')
+
+        if ejercicio_form.is_valid():
+            ejercicio = ejercicio_form.save()
+            for img in nuevas_imagenes:
+                ImagenEjercicio.objects.create(ejercicio=ejercicio, imagen=img)
+            messages.success(request, f"Ejercicio '{ejercicio.nombre}' editado correctamente.")
+            return redirect('ListaEjercicios')
+        else:
+            messages.error(request, "Error al editar el ejercicio. Revisa los datos ingresados.")
+    else:
+        ejercicio_form = EjercicioForm(instance=ejercicio)
+
+    return render(request, 'ejercicios/form_ejercicio.html', {
+        'form': ejercicio_form,
+    })
+
+# VISTA ELIMINAR EJERCICIO
+@login_required
+@require_POST
+def eliminar_ejercicio(request, pk):
+    if not request.user.groups.filter(name__in=grupos_permitidoss).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+    ejercicio = get_object_or_404(Ejercicio, pk=pk)
+    ejercicio.delete()
+    messages.success(request, f"Ejercicio '{ejercicio.nombre}' eliminado correctamente.")
+    return redirect('ListaEjercicios')
+
+# VISTA ELIMINAR IMAGEN DE EJERCICIO
+@csrf_exempt
+def eliminar_imagen(request, imagen_id):
+    if not request.user.groups.filter(name__in=grupos_permitidoss).exists():
+        messages.error(request, "No tienes permiso.")
+        return render(request, 'clientes/home.html')
+
+    if request.method == 'DELETE':
+        try:
+            imagen = ImagenEjercicio.objects.get(id=imagen_id)
+            imagen.delete()
+            return JsonResponse({'ok': True})
+        except ImagenEjercicio.DoesNotExist:
+            return JsonResponse({'error': 'Imagen no encontrada'}, status=404)
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+
+################### CLIENTES ########################################
+
+# VISTA DE INICIO DE CLIENTES
+
+def home_cliente(request):
+    return render(request, 'clientes/home.html')
+
+@login_required
+def agendar_cita(request):
+    try:
+        paciente = Paciente.objects.get(usuario=request.user)
+    except Paciente.DoesNotExist:
+        paciente = None
+
+    cita_actual = None
+    puede_agendar = True
+
+    if paciente:
+        ahora = timezone.localtime()
+        hoy = ahora.date()
+
+        citas_futuras = Cita.objects.filter(
+            paciente=paciente,
+            fechacita__gte=hoy
+        ).order_by('fechacita', 'horacita')
+
+        for cita in citas_futuras:
+            cita_hora = timezone.make_aware(
+                timezone.datetime.combine(cita.fechacita, timezone.datetime.min.time()).replace(hour=cita.horacita),
+                timezone.get_current_timezone()
+            )
+            if cita_hora > ahora:
+                cita_actual = cita
+                puede_agendar = False
+                break
+
+    if request.method == 'POST' and paciente and puede_agendar:
+        form = CitaForm(request.POST)
+        if form.is_valid():
+            cita = form.save(commit=False)
+            cita.paciente = paciente
+
+            # Validar fechas pasadas y horas pasadas desde la vista
+            hoy = timezone.localtime().date()
+            ahora = timezone.localtime().time()
+            print(hoy)
+            print(ahora)
+            if cita.fechacita < hoy:
+                print(cita.fechacita)
+                messages.error(request, "No puedes agendar citas en fechas pasadas.")
+            else:
+                hora_cita = time(cita.horacita, 0)
+                if cita.fechacita == hoy and ahora >= hora_cita:
+                    messages.error(request, "No puedes agendar citas para horas que ya pasaron hoy.")
+                elif Cita.objects.filter(fechacita=cita.fechacita, horacita=cita.horacita).exists():
+                    messages.error(request, "Ya existe una cita para ese día y hora.")
+                else:
+                    cita.save()
+                    messages.success(request, "Cita agendada correctamente.")
+                    return redirect('agendar_cita')
+    else:
+        form = CitaForm(initial={'paciente': paciente})
+
+    return render(request, 'Clientes/cita.html', {
+        'form': form,
+        'cita_actual': cita_actual,
+        'paciente': paciente,
+        'puede_agendar': puede_agendar,
+    })
+
+@login_required
+def ejercicios_cliente(request):
+    categorias = Ejercicio.objects.values_list('categoria', flat=True).distinct()
+    return render(request, 'clientes/ejercicios.html', {'categorias': categorias})
+
+@login_required
+def api_subcategorias(request):
+    categoria = request.GET.get('categoria')
+    subcategorias = Ejercicio.objects.filter(categoria=categoria).values_list('subcategoria', flat=True).distinct()
+    semanas = Ejercicio.objects.filter(categoria=categoria).values_list('semana', flat=True).distinct()
+    return JsonResponse({'subcategorias': list(subcategorias), 'semanas': list(semanas)})
+
+@login_required
+def api_ejercicios(request):
+    categoria = request.GET.get('categoria')
+    subcategoria = request.GET.get('subcategoria')
+    semana = request.GET.get('semana')
+    ejercicios = Ejercicio.objects.filter(categoria=categoria, subcategoria=subcategoria, semana=semana)
+    data = []
+    for e in ejercicios:
+        imagenes = [img.imagen.url for img in e.imagenes.all()]
+        data.append({
+            'nombre': e.nombre,
+            'descripcion': e.descripcion,
+            'pdf': e.pdf.url if e.pdf else '',
+            'imagenes': imagenes
+        })
+        print(data)
+    return JsonResponse({'ejercicios': data})
