@@ -12,6 +12,8 @@ urlpatterns = [
     path('', inicio),
     path('inicio/', inicio),
     path('estadisticas/', estadisticas),
+    path('dashboard/', dashboard, name='dashboard'),
+    path('historia/', views.historia, name='historia'),
     
     #DIRECCION DOCTORES
     path('doctores/', views.lista_doctores, name='lista_doctores'),
@@ -60,7 +62,7 @@ urlpatterns = [
 
 
     #DIRECCION CLIENTES
-    path('homecliente/', home_cliente, name='home_cliente'),
+    
     path('citascliente/', agendar_cita, name='agendar_cita'),
     path('ejercicioscliente/', views.ejercicios_cliente, name='ejercicios_cliente'),
     path('api/subcategorias/', views.api_subcategorias, name='api_subcategorias'),

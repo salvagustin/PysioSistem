@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+
+{% block title %} | Inicio {% endblock title %}
+
+{% block content %}
+<div class="container-fluid py-1">
+
+  <!-- Encabezado -->
+  <div class="text-center mb-5">
+    <h1 class="fw-bold display-5">Physio System</h1>
+  </div>
+
+  <!-- Acciones principales -->
+  <div class="row justify-content-center mb-4">
+    <div class="col-auto">
+      
+      <a class="btn btn-success btn-lg shadow-sm me-2" href="/agregarpaciente/">
+        <i class="bi bi-plus-circle"></i> Paciente</a>
+    </div>
+    <div class="col-auto">
+      <a class="btn btn-primary btn-lg shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#modalAgregarConsulta">
+        <i class="bi bi-plus-circle"></i> Consulta</a>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary btn-lg shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#modalAgregarCita">
+                <i class="bi bi-plus-circle fs-5 me-2"></i>Cita
+            </button>
+    </div>
+  </div>
+  
+
+  <!-- Búsqueda 
+  <div class="row justify-content-center mb-4">
+    <div class="col-12 col-md-6">
+      <form onsubmit="event.preventDefault(); buscar_paciente_index();">
+        <div class="input-group shadow-sm">
+          <input required type="text" class="form-control" placeholder="Buscar paciente por nombre" name="nombre" autocomplete="off">
+          <button class="btn btn-outline-success" type="submit">Buscar</button>
+        </div>
+      </form>
+    </div>
+  </div>-->
+
+  <!-- Tablas de turnos -->
+  <div class="row justify-content-center mt-4">
+  <div class="col-12 col-md-10">
+
+    <!-- Turno Matutino -->
+<div class="mb-5">
+  <h5 class="fw-semibold text-center mb-3">Turno Matutino (8:00 AM - 11:00 AM)</h5>
+
+  <!-- Vista de escritorio (tabla) -->
+  <div class="table-container d-none d-md-block shadow-sm mb-3">
+    <table class="table custom-table table-bordered text-center align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for hora in horario.matutino %}
+            <th>{{ hora }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {% for hora, paciente in horario.matutino.items %}
+            <td class="{% if paciente %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+              {{ paciente|truncatechars:12|default:"Libre" }}
+            </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Vista móvil (tarjetas) -->
+  <div class="d-md-none">
+    {% for hora, paciente in horario.matutino.items %}
+      <div class="card mb-2 shadow-sm {% if paciente %}border-danger{% else %}border-success{% endif %}">
+        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+          <strong>{{ hora }}</strong>
+          <span class="badge {% if paciente %}bg-danger{% else %}bg-success{% endif %}">
+            {{ paciente|truncatechars:12|default:"Libre" }}
+          </span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+
+<!-- Turno Vespertino -->
+<div class="mb-5">
+  <h5 class="fw-semibold text-center mb-3">Turno Vespertino (1:00 PM - 5:00 PM)</h5>
+
+  <!-- Vista de escritorio (tabla) -->
+  <div class="table-container d-none d-md-block shadow-sm mb-3">
+    <table class="table custom-table table-bordered text-center align-middle">
+      <thead class="table-light">
+        <tr>
+          {% for hora in horario.vespertino %}
+            <th>{{ hora }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          {% for hora, paciente in horario.vespertino.items %}
+            <td class="{% if paciente %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+              {{ paciente|truncatechars:12|default:"Libre" }}
+            </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Vista móvil (tarjetas) -->
+  <div class="d-md-none">
+    {% for hora, paciente in horario.vespertino.items %}
+      <div class="card mb-2 shadow-sm {% if paciente %}border-danger{% else %}border-success{% endif %}">
+        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+          <strong>{{ hora }}</strong>
+          <span class="badge {% if paciente %}bg-danger{% else %}bg-success{% endif %}">
+            {{ paciente|truncatechars:12|default:"Libre" }}
+          </span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+
+  </div>
+  </div>
+
+
+   <!-- Estadísticas del día -->
+  <div class="row text-center mb-4 justify-content-center">
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body py-3">
+          <h6 class="card-title mb-2">Consultas del Día</h6>
+          <p class="fs-4 mb-0">{{ consultashoy }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body py-3">
+          <h6 class="card-title mb-2">Citas del Día</h6>
+          <p class="fs-4 mb-0">{{ citashoy }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 mb-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body py-3">
+          <h6 class="card-title mb-2">Devengado Hoy</h6>
+          <p class="fs-4 mb-0">${{ devengadohoy }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<!-- Modal para agregar consulta -->
+<div class="modal fade" id="modalAgregarConsulta" tabindex="-1" aria-labelledby="modalAgregarConsultaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content shadow">
+
+      <!-- Header -->
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title" id="modalAgregarConsultaLabel">
+          <i class="bi bi-journal-plus me-2"></i> Nueva Consulta
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Formulario -->
+      <form method="get" action="/agregarconsulta/">
+        <div class="modal-body">
+          <div class="row gy-3">
+            <div class="col-12 d-flex align-items-start">
+              <i class="bi bi-person-fill-check fs-4 text-success me-3 mt-1"></i>
+              <div class="w-100">
+                <h6 class="mb-1">Selecciona un Paciente</h6>
+                <select class="form-select" name="paciente_id" required>
+                  <option value="" disabled selected>Pacientes</option>
+                  {% for paciente in pacientes %}
+                    <option value="{{ paciente.idpaciente }}">{{ paciente.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <input type="hidden" name="paciente_nombre" id="pacienteNombreInput">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-arrow-right-circle me-1"></i> Siguiente
+            </button>
+          </div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i> Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+   <!-- Modal para agregar cita -->
+<div class="modal fade" id="modalAgregarCita" tabindex="-1" aria-labelledby="modalAgregarCitaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content shadow">
+
+      <!-- Header -->
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="modalAgregarCitataLabel">
+          <i class="bi bi-person-plus-fill me-2"></i> Nueva cita
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- Formulario -->
+      <form method="get" action="/agregarcita/">
+        <div class="modal-body">
+          <div class="row gy-3">
+            <div class="col-12 d-flex align-items-start">
+              <i class="bi bi-person-fill-add fs-4 text-info me-3 mt-1"></i>
+              <div class="w-100">
+                <h6 class="mb-1">Selecciona un Paciente</h6>
+                <select class="form-select" name="paciente_id2" required>
+                  <option value="" disabled selected>Pacientes</option>
+                  {% for paciente in pacientes %}
+                    <option value="{{ paciente.idpaciente }}">{{ paciente.nombre }}</option>
+                  {% endfor %}
+                </select>
+                <input type="hidden" name="paciente_nombre" id="pacienteNombreInput2">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
+          <div class="d-flex flex-wrap gap-2">
+            
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-arrow-right-circle me-1"></i> Siguiente
+            </button>
+          </div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="bi bi-x-circle me-1"></i> Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+  
+
+</div>
+
+<!-- Scripts -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const select = document.querySelector('select[name="paciente_id"]');
+    const input = document.getElementById('pacienteNombreInput');
+    const select2 = document.querySelector('select[name="paciente_id2"]');
+    const input2 = document.getElementById('pacienteNombreInput2');
+
+    select.addEventListener('change', function () {
+      const nombre = select.options[select.selectedIndex].text;
+      input.value = nombre;
+    });
+    select2.addEventListener('change', function () {
+      const nombre2 = select2.options[select2.selectedIndex].text;
+      input2.value = nombre2;
+    });
+  });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+
+{% if messages %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      {% for message in messages %}
+        Swal.fire({
+          icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}",
+          title: "{{ message|escapejs }}",
+          timer: 3000,
+          showConfirmButton: false
+        });
+      {% endfor %}
+    });
+  </script>
+{% endif %} 
+
+
+<style>
+  .custom-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .custom-table th,
+  .custom-table td {
+    min-width: 120px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+  }
+
+  @media (max-width: 768px) {
+    .custom-table {
+      width: max-content;
+    }
+
+    .custom-table th,
+    .custom-table td {
+      min-width: 100px;
+      font-size: 12px;
+      padding: 6px;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+    width: 100%;
+  }
+</style>
+
+
+{% endblock content %}

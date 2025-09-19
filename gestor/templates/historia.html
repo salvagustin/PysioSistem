@@ -1,0 +1,599 @@
+{% extends 'base.html' %}
+{% block title %}Historia{% endblock title %}
+
+{% block content %}
+<!-- Estilos CSS para la línea de tiempo -->
+<style>
+    .timeline-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: -15px;
+        padding: 50px 20px;
+        position: relative;
+        overflow: hidden;
+        min-height: 90vh;
+        border-radius: 0;
+    }
+
+    /* Modo oscuro */
+    body.dark-mode .timeline-section {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    .timeline-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 2;
+    }
+
+    .timeline-title {
+        text-align: center;
+        color: white;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        margin-bottom: 10px;
+        opacity: 0;
+        animation: fadeInDown 1s ease-out forwards;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        font-weight: 700;
+    }
+
+    .timeline-subtitle {
+        text-align: center;
+        color: rgba(255,255,255,0.9);
+        font-size: clamp(1rem, 3vw, 1.3rem);
+        margin-bottom: 60px;
+        opacity: 0;
+        animation: fadeInDown 1s ease-out 0.3s forwards;
+        font-weight: 300;
+    }
+
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(to bottom, #ffd700, #ff6b6b, #4ecdc4);
+        transform: translateX(-50%);
+        animation: growLine 3s ease-out 1s forwards;
+        height: 0;
+        border-radius: 2px;
+    }
+
+    /* Modo oscuro para la línea de tiempo */
+    body.dark-mode .timeline::before {
+        background: linear-gradient(to bottom, #64ffda, #ff6b6b, #4ecdc4);
+    }
+
+    .timeline-item {
+        position: relative;
+        margin: 80px 0;
+        opacity: 0;
+        animation: slideIn 0.8s ease-out forwards;
+    }
+
+    .timeline-item:nth-child(1) { animation-delay: 1.5s; }
+    .timeline-item:nth-child(2) { animation-delay: 1.8s; }
+    .timeline-item:nth-child(3) { animation-delay: 2.1s; }
+    .timeline-item:nth-child(4) { animation-delay: 2.4s; }
+    .timeline-item:nth-child(5) { animation-delay: 2.7s; }
+    .timeline-item:nth-child(6) { animation-delay: 3s; }
+    .timeline-item:nth-child(7) { animation-delay: 3.3s; }
+    .timeline-item:nth-child(8) { animation-delay: 3.6s; }
+    .timeline-item:nth-child(9) { animation-delay: 3.9s; }
+    .timeline-item:nth-child(10) { animation-delay: 4.2s; }
+    .timeline-item:nth-child(11) { animation-delay: 4.5s; }
+
+    .timeline-item.left {
+        text-align: right;
+        padding-right: 70px;
+    }
+
+    .timeline-item.right {
+        text-align: left;
+        padding-left: 70px;
+        margin-left: auto;
+    }
+
+    .timeline-item.left .timeline-content {
+        margin-left: auto;
+    }
+
+    .timeline-item.right .timeline-content {
+        margin-right: auto;
+    }
+
+    .timeline-content {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(15px);
+        border-radius: 20px;
+        padding: 30px;
+        max-width: 480px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        position: relative;
+        transition: all 0.4s ease;
+        overflow: hidden;
+        color: #2c3e50;
+    }
+
+    /* Modo oscuro para el contenido */
+    body.dark-mode .timeline-content {
+        background: rgba(44, 47, 62, 0.95);
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+        color: #f5f5f5;
+    }
+
+    .timeline-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+        background-size: 400% 100%;
+        animation: shimmer 3s ease-in-out infinite;
+    }
+
+    .timeline-content:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+    }
+
+    body.dark-mode .timeline-content:hover {
+        box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+    }
+
+    .timeline-number {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #ff6b6b, #ffd700);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.3rem;
+        border: 4px solid rgba(255, 255, 255, 0.95);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        animation: pulse 3s infinite;
+        z-index: 10;
+    }
+
+    /* Modo oscuro para números */
+    body.dark-mode .timeline-number {
+        background: linear-gradient(135deg, #64ffda, #ffd700);
+        border: 4px solid rgba(44, 47, 62, 0.95);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .period-title {
+        font-size: clamp(1.1rem, 4vw, 1.4rem);
+        font-weight: 700;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .period-description {
+        line-height: 1.6;
+        font-size: clamp(0.85rem, 3vw, 0.95rem);
+        opacity: 0.9;
+    }
+
+    /* Modo oscuro para texto */
+    body.dark-mode .period-title,
+    body.dark-mode .period-description {
+        color: #f5f5f5;
+    }
+
+    body.dark-mode .period-description {
+        color: #ccc;
+    }
+
+    .timeline-image {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 15px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.2rem;
+        animation: float 4s ease-in-out infinite;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+    }
+
+    .timeline-image:hover {
+        transform: scale(1.1) rotate(10deg);
+    }
+
+    /* Estilos específicos para cada período */
+    .egypt { background: linear-gradient(135deg, #ffd700, #ff8c00); }
+    .mesopotamia { background: linear-gradient(135deg, #8B4513, #CD853F); }
+    .india { background: linear-gradient(135deg, #FF6347, #FF4500); }
+    .china { background: linear-gradient(135deg, #DC143C, #B22222); }
+    .greece { background: linear-gradient(135deg, #4169E1, #1E90FF); }
+    .medieval { background: linear-gradient(135deg, #8B008B, #9932CC); }
+    .aztec { background: linear-gradient(135deg, #DAA520, #B8860B); }
+    .wwi { background: linear-gradient(135deg, #696969, #2F4F4F); }
+    .wwii { background: linear-gradient(135deg, #B22222, #8B0000); }
+    .covid { background: linear-gradient(135deg, #32CD32, #228B22); }
+    .future { background: linear-gradient(135deg, #00CED1, #20B2AA); }
+
+    .floating-elements {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .floating-element {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+    }
+
+    body.dark-mode .floating-element {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .floating-element:nth-child(1) {
+        width: 60px;
+        height: 60px;
+        top: 10%;
+        left: 5%;
+        animation-delay: 0s;
+    }
+
+    .floating-element:nth-child(2) {
+        width: 80px;
+        height: 80px;
+        top: 60%;
+        right: 8%;
+        animation-delay: 3s;
+    }
+
+    .floating-element:nth-child(3) {
+        width: 50px;
+        height: 50px;
+        bottom: 20%;
+        left: 10%;
+        animation-delay: 6s;
+    }
+
+    /* Animaciones */
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes growLine {
+        from { height: 0; }
+        to { height: 100%; }
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(80px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .timeline-item.left {
+        animation-name: slideInLeft;
+    }
+
+    @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-80px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.3); }
+        70% { box-shadow: 0 0 0 20px rgba(255, 107, 107, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+    }
+
+    body.dark-mode .timeline-number {
+        animation-name: pulseDark;
+    }
+
+    @keyframes pulseDark {
+        0% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0.3); }
+        70% { box-shadow: 0 0 0 20px rgba(100, 255, 218, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(100, 255, 218, 0); }
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        25% { transform: translateY(-15px) rotate(3deg); }
+        50% { transform: translateY(-5px) rotate(-3deg); }
+        75% { transform: translateY(-20px) rotate(2deg); }
+    }
+
+    @keyframes shimmer {
+        0% { background-position: -400% 0%; }
+        100% { background-position: 400% 0%; }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .timeline-section {
+            margin: -15px;
+            padding: 40px 15px;
+            min-height: 85vh;
+        }
+
+        .timeline::before {
+            left: 30px;
+        }
+
+        .timeline-item.left,
+        .timeline-item.right {
+            text-align: left;
+            padding-left: 80px;
+            padding-right: 15px;
+            margin-left: 0;
+        }
+
+        .timeline-number {
+            left: 30px;
+            width: 50px;
+            height: 50px;
+            font-size: 1.1rem;
+        }
+
+        .timeline-content {
+            max-width: 100%;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .timeline-item {
+            margin: 50px 0;
+        }
+
+        .timeline-image {
+            width: 50px;
+            height: 50px;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .timeline-section {
+            padding: 30px 10px;
+        }
+
+        .timeline-item.left,
+        .timeline-item.right {
+            padding-left: 70px;
+            padding-right: 10px;
+        }
+
+        .timeline-number {
+            left: 20px;
+            width: 45px;
+            height: 45px;
+            font-size: 1rem;
+        }
+
+        .timeline::before {
+            left: 20px;
+            width: 3px;
+        }
+
+        .timeline-content {
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .timeline-image {
+            width: 45px;
+            height: 45px;
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .timeline-item {
+            margin: 40px 0;
+        }
+    }
+</style>
+
+<!-- Contenido HTML de la línea de tiempo -->
+<div class="timeline-section">
+    <div class="floating-elements">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+
+    <div class="timeline-container">
+        <h1 class="timeline-title">Historia de la Fisioterapia</h1>
+        <p class="timeline-subtitle">Un viaje completo a través del tiempo y las culturas</p>
+
+        <div class="timeline">
+            <div class="timeline-item right">
+                <div class="timeline-number">01</div>
+                <div class="timeline-content">
+                    <div class="timeline-image egypt">🏺</div>
+                    <h3 class="period-title">Antiguo Egipto</h3>
+                    <p class="period-description">En Egipto, el papiro de Edwin Smith describía la aplicación del calor y frío para el tratamiento de procesos inflamatorios. Se hablaba sobre la exposición al sol y sus beneficios terapéuticos, estableciendo las primeras bases documentadas de la termoterapia.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item left">
+                <div class="timeline-number">02</div>
+                <div class="timeline-content">
+                    <div class="timeline-image mesopotamia">🏛️</div>
+                    <h3 class="period-title">Mesopotamia</h3>
+                    <p class="period-description">La antigua Mesopotamia marcó el inicio formal de la fisioterapia. El tratamiento con agentes físicos era practicado por la casta sacerdotal "Asu", quienes utilizaban métodos físicos y tratamientos basados en plantas para aliviar dolencias y promover la salud.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item right">
+                <div class="timeline-number">03</div>
+                <div class="timeline-content">
+                    <div class="timeline-image india">🧘</div>
+                    <h3 class="period-title">India Antigua</h3>
+                    <p class="period-description">En la India, con toda la medicina ayurvédica, la principal aportación fue el yoga, que se relaciona directamente con la cinesiterapia actual. Las técnicas de respiración, posturas y meditación establecieron principios fundamentales del movimiento terapéutico.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item left">
+                <div class="timeline-number">04</div>
+                <div class="timeline-content">
+                    <div class="timeline-image china">⚡</div>
+                    <h3 class="period-title">China Antigua</h3>
+                    <p class="period-description">En China se desarrolló el concepto de curar mediante la energía y la aplicación de masajes. Técnicas como las ventosas, la acupuntura y el Qigong establecieron las bases de la medicina energética y los tratamientos manuales.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item right">
+                <div class="timeline-number">05</div>
+                <div class="timeline-content">
+                    <div class="timeline-image greece">🏛️</div>
+                    <h3 class="period-title">Grecia Clásica</h3>
+                    <p class="period-description">A Grecia se le atribuye la introducción de conceptos como la kinesiología (estudio del movimiento) y la masoterapia (terapia con masaje) como agentes terapéuticos. Hipócrates y Galeno utilizando masajes, ejercicios físicos para tratar dolencias, sentando bases para la fisioterapia deportiva.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item left">
+                <div class="timeline-number">06</div>
+                <div class="timeline-content">
+                    <div class="timeline-image medieval">⚗️</div>
+                    <h3 class="period-title">Edad Media</h3>
+                    <p class="period-description">En la Europa medieval, aunque la fisioterapia como disciplina formal no existía, sí había prácticas relacionadas con la curación y el bienestar físico que hoy se pueden englobar en la fisioterapia, principalmente en monasterios y centros de sanación.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item right">
+                <div class="timeline-number">07</div>
+                <div class="timeline-content">
+                    <div class="timeline-image aztec">💧</div>
+                    <h3 class="period-title">Civilizaciones Precolombinas</h3>
+                    <p class="period-description">Civilizaciones como los aztecas y los mayas desarrollaron métodos terapéuticos con agua, como los baños de vapor (temazcal), que se consideran antecedentes directos de la hidroterapia moderna y los tratamientos termales.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item left">
+                <div class="timeline-number">08</div>
+                <div class="timeline-content">
+                    <div class="timeline-image wwi">🎖️</div>
+                    <h3 class="period-title">Primera Guerra Mundial</h3>
+                    <p class="period-description">La Primera Guerra Mundial jugó un papel crucial en el desarrollo de la fisioterapia, especialmente en la rehabilitación de soldados heridos o amputados. Se desarrolló la fisioterapia respiratoria para tratar los efectos del gas mostaza y otras lesiones de guerra.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item right">
+                <div class="timeline-number">09</div>
+                <div class="timeline-content">
+                    <div class="timeline-image wwii">💣</div>
+                    <h3 class="period-title">Segunda Guerra Mundial</h3>
+                    <p class="period-description">La fisioterapia se centró en atender tanto a los lesionados de la Gran Guerra como a los enfermos de la terrible y mortal epidemia de poliomielitis, dando lugar al nacimiento de la fisioterapia neurológica especializada.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item left">
+                <div class="timeline-number">10</div>
+                <div class="timeline-content">
+                    <div class="timeline-image covid">🦠</div>
+                    <h3 class="period-title">Pandemia COVID-19</h3>
+                    <p class="period-description">La fisioterapia se volvió reconocida a nivel mundial por ser la piedra angular en el tratamiento de enfermos de COVID-19. El trabajo de fisioterapia se volvió esencial en las UCI y como terapia para pacientes ambulatorios con secuelas post-COVID.</p>
+                </div>
+            </div>
+
+            <div class="timeline-item right">
+                <div class="timeline-number">11</div>
+                <div class="timeline-content">
+                    <div class="timeline-image future">🚀</div>
+                    <h3 class="period-title">Visión al Futuro</h3>
+                    <p class="period-description">El futuro de la fisioterapia se vislumbra emocionante, marcado por la integración de tecnologías avanzadas como IA, realidad virtual, robótica y enfoques más personalizados. Se espera el desarrollo de tratamientos para enfermedades crónicas-degenerativas, genéticas y neurológicas con precisión sin precedentes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para interactividad -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Observer para animaciones en scroll
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -80px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+                entry.target.classList.add('visible');
+            }
+        });
+    }, observerOptions);
+
+    // Observar elementos de timeline
+    const timelineItems = document.querySelectorAll('.timeline-item');
+    timelineItems.forEach(item => {
+        observer.observe(item);
+    });
+
+    // Efectos adicionales de interacción
+    const contents = document.querySelectorAll('.timeline-content');
+    contents.forEach(content => {
+        content.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-15px) scale(1.03)';
+        });
+        
+        content.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+
+    // Animación suave para imágenes
+    const images = document.querySelectorAll('.timeline-image');
+    images.forEach(image => {
+        image.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.15) rotate(12deg)';
+        });
+        
+        image.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1) rotate(0deg)';
+        });
+    });
+});
+
+// Animación de scroll parallax muy sutil
+window.addEventListener('scroll', function() {
+    const scrolled = window.pageYOffset;
+    const rate = scrolled * -0.2;
+    const floatingElements = document.querySelectorAll('.floating-element');
+    
+    floatingElements.forEach((element, index) => {
+        const speed = (index + 1) * 0.1;
+        element.style.transform = `translate3d(0, ${rate * speed}px, 0)`;
+    });
+});
+</script>
+
+{% endblock content %}

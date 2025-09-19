@@ -133,21 +133,23 @@ def infohome(request):
         'mensaje': 0
     }
 
-@login_required
-def inicio(request):
-    user = request.user
 
+def inicio(request):
+    
+    return render(request, 'index.html')
+
+@login_required
+def dashboard(request):
+    user=request.user
     # Si es cliente, redirigir a su home
     if user.groups.filter(name='cliente').exists():
-        return render(request, 'clientes/home.html')
+        return render(request, 'index.html')
 
-    elif user.groups.filter(name='administrador').exists():
-       
-       return render(request, 'administrador.html')
+    data=infohome(request)
+    return render(request, 'dashboard.html',data)
 
-    # Para otros grupos (doctor, admin, fisio, nutri) cargamos el index con datos personalizados
-    data = infohome(request)
-    return render(request, 'index.html', data)
+def historia(request):
+    return render(request, 'historia.html')
 
 @login_required
 def salir(request):

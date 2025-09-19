@@ -1,340 +1,258 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %} | Inicio {% endblock title %}
+{% block title %} | Home {% endblock title %}
 
 {% block content %}
-<div class="container-fluid py-5">
-
-  <!-- Encabezado -->
-  <div class="text-center mb-5">
-    <h1 class="fw-bold display-5">Physio System</h1>
-  </div>
-
-  <!-- Acciones principales -->
-  <div class="row justify-content-center mb-4">
-    <div class="col-auto">
-      
-      <a class="btn btn-success btn-lg shadow-sm me-2" href="/agregarpaciente/">
-        <i class="bi bi-plus-circle"></i> Paciente</a>
-    </div>
-    <div class="col-auto">
-      <a class="btn btn-primary btn-lg shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#modalAgregarConsulta">
-        <i class="bi bi-plus-circle"></i> Consulta</a>
-    </div>
-    <div class="col-auto">
-      <button class="btn btn-primary btn-lg shadow-sm me-2" data-bs-toggle="modal" data-bs-target="#modalAgregarCita">
-                <i class="bi bi-plus-circle fs-5 me-2"></i>Cita
-            </button>
-    </div>
-  </div>
-  
-
-  <!-- Búsqueda 
-  <div class="row justify-content-center mb-4">
-    <div class="col-12 col-md-6">
-      <form onsubmit="event.preventDefault(); buscar_paciente_index();">
-        <div class="input-group shadow-sm">
-          <input required type="text" class="form-control" placeholder="Buscar paciente por nombre" name="nombre" autocomplete="off">
-          <button class="btn btn-outline-success" type="submit">Buscar</button>
-        </div>
-      </form>
-    </div>
-  </div>
--->
-
-  <!-- Tablas de turnos -->
-  <div class="row justify-content-center mt-4">
-  <div class="col-12 col-md-10">
-
-    <!-- Turno Matutino -->
-<div class="mb-5">
-  <h5 class="fw-semibold text-center mb-3">Turno Matutino (8:00 AM - 11:00 AM)</h5>
-
-  <!-- Vista de escritorio (tabla) -->
-  <div class="table-container d-none d-md-block shadow-sm mb-3">
-    <table class="table custom-table table-bordered text-center align-middle">
-      <thead class="table-light">
-        <tr>
-          {% for hora in horario.matutino %}
-            <th>{{ hora }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          {% for hora, paciente in horario.matutino.items %}
-            <td class="{% if paciente %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
-              {{ paciente|truncatechars:12|default:"Libre" }}
-            </td>
-          {% endfor %}
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Vista móvil (tarjetas) -->
-  <div class="d-md-none">
-    {% for hora, paciente in horario.matutino.items %}
-      <div class="card mb-2 shadow-sm {% if paciente %}border-danger{% else %}border-success{% endif %}">
-        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
-          <strong>{{ hora }}</strong>
-          <span class="badge {% if paciente %}bg-danger{% else %}bg-success{% endif %}">
-            {{ paciente|truncatechars:12|default:"Libre" }}
-          </span>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
-</div>
-
-
-<!-- Turno Vespertino -->
-<div class="mb-5">
-  <h5 class="fw-semibold text-center mb-3">Turno Vespertino (1:00 PM - 5:00 PM)</h5>
-
-  <!-- Vista de escritorio (tabla) -->
-  <div class="table-container d-none d-md-block shadow-sm mb-3">
-    <table class="table custom-table table-bordered text-center align-middle">
-      <thead class="table-light">
-        <tr>
-          {% for hora in horario.vespertino %}
-            <th>{{ hora }}</th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          {% for hora, paciente in horario.vespertino.items %}
-            <td class="{% if paciente %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
-              {{ paciente|truncatechars:12|default:"Libre" }}
-            </td>
-          {% endfor %}
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Vista móvil (tarjetas) -->
-  <div class="d-md-none">
-    {% for hora, paciente in horario.vespertino.items %}
-      <div class="card mb-2 shadow-sm {% if paciente %}border-danger{% else %}border-success{% endif %}">
-        <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
-          <strong>{{ hora }}</strong>
-          <span class="badge {% if paciente %}bg-danger{% else %}bg-success{% endif %}">
-            {{ paciente|truncatechars:12|default:"Libre" }}
-          </span>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
-</div>
-
-
-  </div>
-  </div>
-
-
-   <!-- Estadísticas del día -->
-  <div class="row text-center mb-4 justify-content-center">
-    <div class="col-lg-4 mb-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body py-3">
-          <h6 class="card-title mb-2">Consultas del Día</h6>
-          <p class="fs-4 mb-0">{{ consultashoy }}</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-4 mb-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body py-3">
-          <h6 class="card-title mb-2">Citas del Día</h6>
-          <p class="fs-4 mb-0">{{ citashoy }}</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-4 mb-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body py-3">
-          <h6 class="card-title mb-2">Devengado Hoy</h6>
-          <p class="fs-4 mb-0">${{ devengadohoy }}</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-<!-- Modal para agregar consulta -->
-<div class="modal fade" id="modalAgregarConsulta" tabindex="-1" aria-labelledby="modalAgregarConsultaLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-md">
-    <div class="modal-content shadow">
-
-      <!-- Header -->
-      <div class="modal-header bg-success text-white">
-        <h5 class="modal-title" id="modalAgregarConsultaLabel">
-          <i class="bi bi-journal-plus me-2"></i> Nueva Consulta
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-
-      <!-- Formulario -->
-      <form method="get" action="/agregarconsulta/">
-        <div class="modal-body">
-          <div class="row gy-3">
-            <div class="col-12 d-flex align-items-start">
-              <i class="bi bi-person-fill-check fs-4 text-success me-3 mt-1"></i>
-              <div class="w-100">
-                <h6 class="mb-1">Selecciona un Paciente</h6>
-                <select class="form-select" name="paciente_id" required>
-                  <option value="" disabled selected>Pacientes</option>
-                  {% for paciente in pacientes %}
-                    <option value="{{ paciente.idpaciente }}">{{ paciente.nombre }}</option>
-                  {% endfor %}
-                </select>
-                <input type="hidden" name="paciente_nombre" id="pacienteNombreInput">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
-          <div class="d-flex flex-wrap gap-2">
-            <button type="submit" class="btn btn-success">
-              <i class="bi bi-arrow-right-circle me-1"></i> Siguiente
-            </button>
-          </div>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-            <i class="bi bi-x-circle me-1"></i> Cancelar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-
-   <!-- Modal para agregar cita -->
-<div class="modal fade" id="modalAgregarCita" tabindex="-1" aria-labelledby="modalAgregarCitaLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-md">
-    <div class="modal-content shadow">
-
-      <!-- Header -->
-      <div class="modal-header bg-primary text-white">
-        <h5 class="modal-title" id="modalAgregarCitataLabel">
-          <i class="bi bi-person-plus-fill me-2"></i> Nueva cita
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-
-      <!-- Formulario -->
-      <form method="get" action="/agregarcita/">
-        <div class="modal-body">
-          <div class="row gy-3">
-            <div class="col-12 d-flex align-items-start">
-              <i class="bi bi-person-fill-add fs-4 text-info me-3 mt-1"></i>
-              <div class="w-100">
-                <h6 class="mb-1">Selecciona un Paciente</h6>
-                <select class="form-select" name="paciente_id2" required>
-                  <option value="" disabled selected>Pacientes</option>
-                  {% for paciente in pacientes %}
-                    <option value="{{ paciente.idpaciente }}">{{ paciente.nombre }}</option>
-                  {% endfor %}
-                </select>
-                <input type="hidden" name="paciente_nombre" id="pacienteNombreInput2">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="modal-footer d-flex flex-wrap gap-2 justify-content-between">
-          <div class="d-flex flex-wrap gap-2">
-            
-            <button type="submit" class="btn btn-success">
-              <i class="bi bi-arrow-right-circle me-1"></i> Siguiente
-            </button>
-          </div>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-            <i class="bi bi-x-circle me-1"></i> Cancelar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-  
-
-</div>
-
-<!-- Scripts -->
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const select = document.querySelector('select[name="paciente_id"]');
-    const input = document.getElementById('pacienteNombreInput');
-    const select2 = document.querySelector('select[name="paciente_id2"]');
-    const input2 = document.getElementById('pacienteNombreInput2');
-
-    select.addEventListener('change', function () {
-      const nombre = select.options[select.selectedIndex].text;
-      input.value = nombre;
-    });
-    select2.addEventListener('change', function () {
-      const nombre2 = select2.options[select2.selectedIndex].text;
-      input2.value = nombre2;
-    });
-  });
-</script>
-<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-
-{% if messages %}
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      {% for message in messages %}
-        Swal.fire({
-          icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% else %}info{% endif %}",
-          title: "{{ message|escapejs }}",
-          timer: 3000,
-          showConfirmButton: false
-        });
-      {% endfor %}
-    });
-  </script>
-{% endif %} 
-
 
 <style>
-  .custom-table {
-    table-layout: fixed;
-    width: 100%;
-  }
-
-  .custom-table th,
-  .custom-table td {
-    min-width: 120px;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: middle;
-  }
-
-  @media (max-width: 768px) {
-    .custom-table {
-      width: max-content;
+    
+    .carousel-img {
+    height: 500px;   
+    width: auto;     
+    object-fit: contain;
     }
 
-    .custom-table th,
-    .custom-table td {
-      min-width: 100px;
-      font-size: 12px;
-      padding: 6px;
-    }
-  }
 
-  .table-container {
-    overflow-x: auto;
-    width: 100%;
-  }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .hero {
+        background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.5)), 
+                    url("{% static 'images/clinica-bg.jpg' %}") center/cover no-repeat;
+        color: white;
+        text-align: center;
+        padding: 80px 20px 60px; /* arriba, lados, abajo (menos espacio abajo) */
+    }
+
+    .hero h1 {
+        font-size: 3rem;
+        font-weight: bold;
+        animation: fadeInDown 1s;
+        margin-bottom: 15px; /* espacio bajo el título */
+    }
+
+    .hero img {
+        margin: 15px 0; /* aire arriba y abajo del logo */
+    }
+
+    .hero p {
+        font-size: 1.2rem;
+        margin-top: 10px; /* menos espacio que antes */
+        animation: fadeInUp 1.5s;
+    }
+
+    .hero .btn {
+        margin: 10px;
+        border-radius: 30px;
+        padding: 12px 25px;
+        font-size: 1.1rem;
+    }
+    .categories-list div {
+        transition: all 0.3s ease;
+    }
+    .categories-list div:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+    .gallery img {
+        border-radius: 15px;
+        transition: transform 0.3s;
+    }
+    .gallery img:hover {
+        transform: scale(1.05);
+    }
+    @keyframes fadeInDown {
+        from {opacity:0; transform: translateY(-20px);}
+        to {opacity:1; transform: translateY(0);}
+    }
+    @keyframes fadeInUp {
+        from {opacity:0; transform: translateY(20px);}
+        to {opacity:1; transform: translateY(0);}
+    }
 </style>
 
+<!-- HERO -->
+<section class="hero">
+    <h1>Physio Specialized</h1>
+    <img src="{% static 'images/logo.jpeg' %}" class="rounded shadow"  alt="Doctor" style="width: 100px; height: auto;">
+    <p>Somos una clínica de fisioterapia especializada en rehabilitación física, 
+        prevención de lesiones y mejora de la calidad de vida tanto de población con condiciones patologicas
+         como en población que quiere mejorar su salud física</p>
+    <a href="https://wa.me/50372881392" target="_blank" class="btn btn-success shadow">💬 WhatsApp</a>
+    <a href="/citascliente/" class="btn btn-primary shadow">📅 Agendar Cita</a>
+</section>
 
-{% endblock content %}
+<!-- SOBRE EL DOCTOR -->
+<section class="container py-5 text-center">
+    <h2 class="mb-4">Conoce a nuestro especialista</h2>
+    <div class="row align-items-center">
+        <div class="col-md-4">
+            <img src="{% static 'images/doctor.jpeg' %}" class="rounded shadow"  alt="Doctor" style="width: 350px; height: auto;">
+
+        </div>
+        <div class="col-md-8">
+            <h3>Dr. Elmer Mena</h3>
+            <p>Soy Máster. Elmer Mena Fisioterapeuta con más de 8  años de experiencia en el área de rehabilitación y prevención, 
+                fundador y CEO de Physio Specialized donde mi objetivo como profesional es brindarte fisioterapia de precisión para 
+                que alcances una optima recuperación física.</p>
+            
+        </div>
+    </div>
+</section>
+
+<!-- CARRUSEL DE FOTOS -->
+<section class="container py-5">
+    <h2 class="text-center mb-4">Nuestra Clínica</h2>
+    <div id="clinicCarousel" class="carousel slide" data-bs-ride="carousel">
+        
+        <!-- Contenedor correcto -->
+        <div class="carousel-inner text-center">
+            <div class="carousel-item active">
+                <img src="{% static 'images/clinica1.jpeg' %}" 
+                     class="carousel-img d-inline-block" 
+                     alt="Clínica 1">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'images/clinica2.jpeg' %}" 
+                     class="carousel-img d-inline-block" 
+                     alt="Clínica 2">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'images/clinica3.jpeg' %}" 
+                     class="carousel-img d-inline-block" 
+                     alt="Clínica 3">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'images/clinica4.jpeg' %}" 
+                     class="carousel-img d-inline-block" 
+                     alt="Clínica 4">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'images/clinica5.jpeg' %}" 
+                     class="carousel-img d-inline-block" 
+                     alt="Clínica 5">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'images/clinica6.jpeg' %}" 
+                     class="carousel-img d-inline-block" 
+                     alt="Clínica 6">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'images/clinica7.jpeg' %}" 
+                     class="carousel-img d-inline-block" 
+                     alt="Clínica 7">
+            </div>
+            <div class="carousel-item">
+                <img src="{% static 'images/clinica8.jpeg' %}" 
+                     class="carousel-img d-inline-block" 
+                     alt="Clínica 8">
+            </div>
+            
+        </div>
+
+        <!-- Controles -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#clinicCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon"></span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#clinicCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon"></span>
+        </button>
+    </div>
+</section>
+
+
+<!-- MISIÓN, VISIÓN Y VALORES -->
+<section class="container py-5">
+    <div class="row text-center g-4">
+        <!-- Misión -->
+        <div class="col-md-6">
+            <div class="p-4 bg-light rounded shadow h-100">
+                <h2 class="mb-3">Nuestra Misión</h2>
+                <p>
+                    Mejorar la calidad de vida de la población en general, a través de la Fisioterapia y Terapia 
+                    ocupacional como un modelo de intervención de primera línea en la prevención, diagnóstico y 
+                    tratamiento de las diferentes afecciones y lesiones que afectan la funcionalidad humana y amenazan 
+                    con secuelas discapacitantes.
+                </p>
+            </div>
+        </div>
+
+        <!-- Visión -->
+        <div class="col-md-6">
+            <div class="p-4 bg-light rounded shadow h-100">
+                <h2 class="mb-3">Nuestra Visión</h2>
+                <p>
+                    Ser un modelo de referencia en Fisioterapia de precisión a nivel occidental a través del diagnóstico oportuno, 
+                    tratamiento de vanguardia y prevención primaria de las diferentes lesiones y enfermedades que afectan la salud y 
+                    calidad de vida de la población en general.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Valores (debajo, centrado) -->
+    <div class="row text-center g-4 mt-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="p-4 bg-light rounded shadow h-100">
+                <h2 class="mb-3">Nuestros Valores</h2>
+                <p>
+                    Equidad, Empatia, Etica, Pasion, Calidad Humana, Comprimiso, Respeto, Responsabilidad, Profesionalismo,
+                    Rectitud e Integridad.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ESPECIALIDADES -->
+<section class="categories py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-4">Especialidades</h2>
+        <div class="row gx-4 gy-4 categories-list justify-content-center">
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded shadow">Fisioterapia Deportiva</div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded shadow">Fisioterapia Respiratoria</div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded shadow">Fisioterapia Cardiovascular</div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded shadow">Fisioterapia neurologícaz</div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded shadow">Fisioterapia Ortopédica y traumatología</div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded shadow">Fisioterapia pediátrica</div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <div class="p-3 bg-white rounded shadow">Fisioterapia del suelo pelvico</div>
+            </div>
+            
+             
+        </div>
+
+    </div>
+</section>
+
+
+<!-- CONTACTO -->
+<section class="contact py-5">
+    <div class="container text-center">
+        <h2>¿Dónde estamos?</h2>
+    </div>
+    <div class="map-container">
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1190.20138783265!2d-89.70745689364318!3d13.976007727483294!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8f6295d6e3135891%3A0x5ac43df933c49844!2sPhysio%20Specialized%20Clinic!5e1!3m2!1ses-419!2ssv!4v1753241830179!5m2!1ses-419!2ssv" 
+                width="100%" height="450" style="border:0;" 
+                allowfullscreen="" loading="lazy" 
+                referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+    </div>
+</section>
+
+
+{% endblock %}

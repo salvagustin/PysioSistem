@@ -23,6 +23,88 @@
 
 
     <style>
+      /* Tarjetas en modo oscuro */
+body.dark-mode .categories-list .col-md-4 .p-3,
+body.dark-mode .categories-list .col-lg-3 .p-3 {
+    background-color: #222 !important; /* Fondo oscuro */
+    color: #f1f1f1 !important;         /* Texto claro */
+}
+
+/* Hover elegante en modo oscuro */
+body.dark-mode .categories-list .col-md-4 .p-3:hover,
+body.dark-mode .categories-list .col-lg-3 .p-3:hover {
+    background-color: #333 !important;
+    color: #fff !important;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+}
+
+      /* --- Sección Misión, Visión y Valores --- */
+body.dark-mode .container .bg-light {
+  background-color: #2c2f3e !important; /* Fondo oscuro */
+  color: #f5f5f5 !important; /* Texto claro */
+}
+
+body.dark-mode .container .bg-light h2 {
+  color: #9b59b6 !important; /* Color destacado para títulos */
+}
+
+/* --- Sección Especialidades --- */
+body.dark-mode .categories {
+  background-color: #1e1e2f !important;
+  color: #f5f5f5 !important;
+}
+
+body.dark-mode .categories-list > div {
+  background-color: #2c2f3e !important;
+  color: #f5f5f5 !important;
+  border: 1px solid #444;
+}
+
+    /* Navbar modo claro */
+.custom-navbar {
+  background-color: #f8f9fa; /* Claro */
+  color: #212529;
+}
+
+.custom-navbar .nav-label {
+  color: #212529; /* Texto oscuro */
+}
+
+.toggle-theme-btn {
+  border: 1px solid #6c757d;
+  color: #212529;
+  background: transparent;
+}
+
+.toggle-theme-btn:hover {
+  background: #e9ecef;
+}
+
+/* Navbar modo oscuro */
+body.dark-mode .custom-navbar {
+  background-color: #1e1e2f;
+  color: #f5f5f5;
+}
+
+body.dark-mode .custom-navbar .nav-label {
+  color: #f5f5f5;
+}
+
+body.dark-mode .toggle-theme-btn {
+  border: 1px solid #ccc;
+  color: #f5f5f5;
+  background: transparent;
+}
+
+body.dark-mode .toggle-theme-btn:hover {
+  background: #333;
+}
+
+
+
+
+
       /* GENERAL: Colores base para modo oscuro */
 body.dark-mode {
     background-color: #1e1e2f;
@@ -328,16 +410,22 @@ body.dark-mode .card-header {
     
   {% load custom_filters %}
 
-    <nav>
-      <div class="logo">
-        <i class="bx bx-menu menu-icon"></i>
+    <nav class="navbar navbar-expand-lg px-3 custom-navbar">
+      <!-- Logo e icono menú -->
+      <div class="logo d-flex align-items-center">
+        <i class="bx bx-menu menu-icon me-2"></i>
         <span class="logo-name">Physio</span>
       </div>
-      <!-- Botón modo oscuro colocado fuera del div.logo -->
-      <button class="btn btn-outline-dark darkmode-toggle" id="toggleDarkMode">
-        <i class="bi bi-moon-fill"></i>
-      </button><br>
-      <span class="nav-label">{{ user.username }}</span>
+      <!-- Usuario + botón modo oscuro -->
+      <div class="ms-auto d-flex align-items-center">
+        <span class="nav-label me-3 fw-semibold">
+          <i class='bx bx-user icon'></i>
+          {{ user.username }}
+        </span>
+        <button class="btn toggle-theme-btn" id="toggleDarkMode">
+          <i class="bi bi-moon-fill"></i>
+        </button>
+      </div>
       <div class="sidebar">
         <div class="logo">
           <i class="bx bx-menu menu-icon"></i>
@@ -347,7 +435,7 @@ body.dark-mode .card-header {
           <ul class="lists">
             {% if user|has_group:"administrador" %}
             <li class="list">
-              <a href="/inicio/" class="nav-link">
+              <a href="/dashboard/" class="nav-link">
                 <i class="bx bx-home-alt icon"></i>
                 <span class="link">Inicio</span>
               </a>
@@ -388,34 +476,11 @@ body.dark-mode .card-header {
                 <span class="link">Reportes</span>
               </a>
             </li>
-             <li class="list">
-              <a href="/homecliente/" class="nav-link">
-                <i class='bx bx-home-alt icon'></i>
-                <span class="link">Inicio (PACIENTE)</span>
-              </a>
-            </li>
-            <li class="list">
-              <a href="/citascliente/" class="nav-link">
-                <i class='bx bx-data icon'></i>
-                <span class="link">Cita (PACIENTE)</span>
-              </a>
-            </li>
-            <li class="list">
-              <a href="/ejercicioscliente/" class="nav-link">
-                <i class='bx bxs-report icon'></i>
-                <span class="link">Guias Practicas (PACIENTE)</span>
-              </a>
-            </li>
-            <li class="list">
-              <a href="/#/" class="nav-link">
-                <i class='bx bxs-report icon'></i>
-                <span class="link">.........(CLIENTE)</span>
-              </a>
-            </li>
             
+             
             {% elif user|has_group:"fisioterapeuta" %}
             <li class="list">
-              <a href="/inicio/" class="nav-link">
+              <a href="/dashboard/" class="nav-link">
                 <i class="bx bx-home-alt icon"></i>
                 <span class="link">Inicio</span>
               </a>
@@ -453,7 +518,7 @@ body.dark-mode .card-header {
             
             {% elif user|has_group:"cliente" %}
             <li class="list">
-              <a href="/homecliente/" class="nav-link">
+              <a href="/inicio/" class="nav-link">
                 <i class='bx bx-home-alt icon'></i>
                 <span class="link">Inicio</span>
               </a>
@@ -470,15 +535,10 @@ body.dark-mode .card-header {
                 <span class="link">Guias Practicas</span>
               </a>
             </li>
-            <li class="list">
-              <a href="/#/" class="nav-link">
-                <i class='bx bxs-report icon'></i>
-                <span class="link">.........(CLIENTE)</span>
-              </a>
-            </li>
+            
             {% elif user|has_group:"nutricionista" %}
             <li class="list">
-              <a href="/inicio/" class="nav-link">
+              <a href="/dashboard/" class="nav-link">
                 <i class="bx bx-home-alt icon"></i>
                 <span class="link">Inicio</span>
               </a>
@@ -509,7 +569,7 @@ body.dark-mode .card-header {
             </li>
             {% elif user|has_group:"doctor" %}
             <li class="list">
-              <a href="/inicio/" class="nav-link">
+              <a href="/dashboard/" class="nav-link">
                 <i class="bx bx-home-alt icon"></i>
                 <span class="link">Inicio</span>
               </a>
@@ -540,9 +600,15 @@ body.dark-mode .card-header {
             </li>
             {% elif not user|has_group:"administrador" and not user|has_group:"cliente" %}
             <li class="list">
-              <a href="/homecliente/" class="nav-link">
+              <a href="/inicio/" class="nav-link">
                 <i class='bx bx-home-alt icon'></i>
                 <span class="link">Inicio</span>
+              </a>
+            </li>
+            <li class="list">
+              <a href="/historia/" class="nav-link">
+                <i class='bx bx-home-alt icon'></i>
+                <span class="link">Historia</span>
               </a>
             </li>
             {% endif %}
@@ -552,12 +618,7 @@ body.dark-mode .card-header {
             <li class="list">
               
             </li>
-            <li class="list">
-              <a href="#" class="nav-link">
-                <i class='bx bx-user icon'></i>
-                <span class="nav-label">{{ user.username }}</span>
-              </a>
-            </li>
+            
             <li class="list">
               <a href="{% url 'logout' %}" class="nav-link">
                 <i class="bx bx-log-out icon"></i>
@@ -571,7 +632,7 @@ body.dark-mode .card-header {
 
     <section class="overlay"></section>
 
-    <div class="content py-4">
+    <div class="content py-3">
       <div class="container">
         {% block content %}
         {% endblock content %}
@@ -725,9 +786,16 @@ document.addEventListener("DOMContentLoaded", function () {
             popup: isDark ? 'swal2-dark' : ''
         }
     });
+    
 }
 
     </script>
 
   </body>
+  <footer class="footer text-center py-3">
+    <div class="container">
+      <span class="text-muted">&copy; 2025 Physio System. Todos los derechos reservados.</span>
+    </div>
+  </footer>
+  
 </html>
