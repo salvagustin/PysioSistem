@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-m56x&$nokhqinmt6upbs9+qsb3kje(u!#jk@@92ob+n(bwjm#q
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1','localhost','35.226.233.6','physiospecialized.com']
 LOGIN_REDIRECT_URL='/'
 LOGOUT_REDIRECT_URL='/'
 
@@ -43,9 +43,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'gestor',
-    'bootstrap5',
-    'jquery',
-    'bootstrap_datepicker_plus',
     'crispy_forms',
     'crispy_bootstrap5'
 ]
@@ -84,18 +81,23 @@ WSGI_APPLICATION = 'clinica.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+#DATABASES = {
+#    'default': {
+ #       'ENGINE': 'django.db.backends.mysql',
+        #'NAME':'pysio',
+        #'USER':'root',
+        #'PASSWORD':'',
+        #'HOST':'localhost',
+        #'PORT':'3306'
+
+#    }
+#}
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME':'pysio',
-        'USER':'root',
-        'PASSWORD':'',
-        'HOST':'localhost',
-        'PORT':'3306'
-
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
